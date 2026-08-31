@@ -1,0 +1,32 @@
+{
+  "name": "AMS TechLingo",
+  "short_name": "TechLingo",
+  "description": "Personal tech dictionary — terms, abbreviations and definitions in English, German and Swedish, with photos and favorites",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "background_color": "#1a1206",
+  "theme_color": "#F08A00",
+  "categories": ["productivity", "reference", "education"],
+  "icons": [
+    {
+      "src": "icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "icons/icon-512-maskable.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ]
+}

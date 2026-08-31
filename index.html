@@ -1,0 +1,275 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate, max-age=0">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="AMS TechLingo">
+    <meta name="theme-color" content="#F08A00">
+    <title>AMS TechLingo</title>
+    <link rel="icon" type="image/png" sizes="64x64" href="icons/favicon-64.png">
+    <link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png">
+    <link rel="apple-touch-icon" sizes="180x180" href="icons/apple-touch-icon.png">
+    <link rel="manifest" href="manifest.json">
+    <link rel="stylesheet" href="css/style.css?v=1.0">
+</head>
+<body>
+    <svg class="icon-sprite" aria-hidden="true" focusable="false">
+        <symbol id="icon-book" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M4.6 4.8c-.2 4.8-.2 9.6 0 14.4 4.9.3 9.9.2 14.8 0 .2-4.8.2-9.6 0-14.4-4.9-.3-9.9-.3-14.8 0Z"/>
+            <path d="M12 5.1c0 4.7 0 9.3.1 13.9"/>
+            <path d="M6.8 8.6c1-.2 1.9-.2 2.9 0M6.8 11.8c1-.2 1.9-.2 2.9 0M14.3 8.6c1-.2 1.9-.2 2.9 0M14.3 11.8c1-.2 1.9-.2 2.9 0"/>
+        </symbol>
+        <symbol id="icon-star" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M12 3.6c1 2 1.9 3.9 2.8 5.8 2.1.3 4.2.6 6.2 1-1.5 1.5-3 2.9-4.5 4.3.4 2.1.7 4.2.9 6.3-1.8-1-3.6-2-5.4-3.1-1.8 1-3.7 2-5.5 2.9.3-2.1.6-4.2 1-6.3C6 13.2 4.6 11.8 3.1 10.3c2.1-.3 4.2-.6 6.3-.9.8-1.9 1.7-3.9 2.6-5.8Z"/>
+        </symbol>
+        <symbol id="icon-guide" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M12.1 3.5c4.7-.1 8.4 3.7 8.3 8.4-.1 4.6-3.8 8.3-8.4 8.3-4.6 0-8.4-3.8-8.3-8.5.1-4.5 3.9-8.1 8.4-8.2Z"/>
+            <path d="M9.8 9.2c.2-1.4 1.2-2.3 2.5-2.2 1.3 0 2.2 1 2.2 2.2 0 1.7-2.3 2-2.4 3.8"/>
+            <path d="M12.1 16.4h.01"/>
+        </symbol>
+        <symbol id="icon-settings" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M4.2 7.3c.9-.1 1.8-.2 2.7-.2M11.5 7.1c2.8-.1 5.5 0 8.3.2"/>
+            <path d="M7.05 7.2C7 6 7.95 5.05 9.2 5.05c1.3 0 2.15.95 2.15 2.15 0 1.3-.95 2.2-2.15 2.15C7.9 9.3 7.05 8.4 7.05 7.2Z"/>
+            <path d="M4.2 12.1c2.7-.2 5.4-.2 8.5-.2M17.3 11.9c.9 0 1.8.1 2.7.2"/>
+            <path d="M12.85 12c-.05-1.25.9-2.15 2.15-2.15 1.3 0 2.15.95 2.15 2.15 0 1.3-.95 2.2-2.15 2.15-1.3-.05-2.15-.95-2.15-2.15Z"/>
+            <path d="M4.2 16.9c.5-.1 1-.1 1.5-.1M10.5 16.7c3.1-.1 6.2 0 9.3.2"/>
+            <path d="M6.05 16.8C6 15.55 6.95 14.65 8.2 14.65c1.3 0 2.15.95 2.15 2.15 0 1.3-.95 2.2-2.15 2.15-1.3-.05-2.15-.95-2.15-2.15Z"/>
+        </symbol>
+        <symbol id="icon-plus" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M12 5.2c-.1 4.5-.1 9 0 13.6M5.2 12c4.5-.1 9-.1 13.6 0"/>
+        </symbol>
+        <symbol id="icon-back" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M14.8 5.3c-2.3 2.2-4.5 4.4-6.6 6.7 2.1 2.3 4.3 4.5 6.5 6.7"/>
+        </symbol>
+        <symbol id="icon-search" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M10.4 4.1c3.5-.1 6.3 2.7 6.2 6.2-.1 3.4-2.8 6.1-6.2 6.1-3.5 0-6.3-2.8-6.2-6.3.1-3.3 2.9-5.9 6.2-6Z"/>
+            <path d="M15.2 15.4c1.6 1.5 3.1 3 4.6 4.6"/>
+        </symbol>
+        <symbol id="icon-camera" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M4.5 8.1c1.2-.2 2.4-.3 3.6-.4.5-.9 1-1.7 1.6-2.5 1.5-.1 3-.1 4.5 0 .6.8 1.1 1.6 1.6 2.5 1.2.1 2.4.2 3.6.4.2 3.4.2 6.8 0 10.2-4.9.3-9.9.3-14.9 0-.2-3.4-.2-6.8 0-10.2Z"/>
+            <path d="M12 9.6c1.9 0 3.4 1.5 3.3 3.4-.1 1.8-1.5 3.2-3.3 3.2-1.9 0-3.4-1.5-3.3-3.4.1-1.7 1.5-3.1 3.3-3.2Z"/>
+        </symbol>
+        <symbol id="icon-edit" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M16.7 4.1c1.1.8 2.1 1.8 3 2.9-3 3.4-6.1 6.7-9.3 9.9-1.3.5-2.6.9-3.9 1.2.3-1.3.6-2.7 1.1-4 2.9-3.4 6-6.7 9.1-10Z"/>
+            <path d="M4.5 20.1c5 .2 10 .2 15 0"/>
+        </symbol>
+        <symbol id="icon-trash" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M4.9 6.6c4.7-.3 9.5-.3 14.2 0"/>
+            <path d="M9.2 6.4c0-1 .5-1.9 1.3-2.3.9-.2 2.1-.2 3 0 .8.4 1.3 1.3 1.3 2.3"/>
+            <path d="M6.5 6.7c.1 4.3.3 8.6.7 12.8 3.2.3 6.4.3 9.6 0 .4-4.2.6-8.5.7-12.8"/>
+            <path d="M10 10.2c0 2.2.1 4.3.2 6.4M13.9 10.2c0 2.2-.1 4.3-.2 6.4"/>
+        </symbol>
+        <symbol id="icon-close" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M6.1 6.2c3.9 3.8 7.7 7.7 11.6 11.6M17.8 6.1C13.9 10 10.1 13.8 6.2 17.7"/>
+        </symbol>
+        <symbol id="icon-export" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M12 14.6c-.1-3.6-.1-7.1 0-10.7M8.6 7.2c1.1-1.2 2.2-2.3 3.4-3.4 1.2 1.1 2.3 2.2 3.4 3.4"/>
+            <path d="M4.8 12.9c-.2 2.3-.2 4.5 0 6.7 4.8.3 9.6.3 14.4 0 .2-2.2.2-4.4 0-6.7"/>
+        </symbol>
+        <symbol id="icon-import" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M12 3.9c-.1 3.6-.1 7.1 0 10.7M8.6 11.3c1.1 1.2 2.2 2.3 3.4 3.4 1.2-1.1 2.3-2.2 3.4-3.4"/>
+            <path d="M4.8 12.9c-.2 2.3-.2 4.5 0 6.7 4.8.3 9.6.3 14.4 0 .2-2.2.2-4.4 0-6.7"/>
+        </symbol>
+    </svg>
+
+    <div id="app">
+        <!-- ===== Words / Favorites list view ===== -->
+        <section id="view-list" class="view">
+            <header class="top-bar">
+                <h1 id="list-title">TechLingo</h1>
+                <div class="lang-switch" id="lang-switch" role="tablist" aria-label="Language">
+                    <button data-lang="en" class="active">EN</button>
+                    <button data-lang="de">DE</button>
+                    <button data-lang="sv">SV</button>
+                </div>
+            </header>
+            <div class="search-row">
+                <div class="search-box">
+                    <svg class="icon"><use href="#icon-search"/></svg>
+                    <input type="search" id="search-input" placeholder="Search words…" autocomplete="off" autocapitalize="off">
+                    <button id="search-clear" class="ghost-btn hidden" aria-label="Clear search">
+                        <svg class="icon"><use href="#icon-close"/></svg>
+                    </button>
+                </div>
+                <select id="sort-select" aria-label="Sort">
+                    <option value="az">A – Z</option>
+                    <option value="added">Newest first</option>
+                    <option value="updated">Last updated</option>
+                </select>
+            </div>
+            <div class="chip-row" id="category-chips"></div>
+            <div class="chip-row small" id="extra-chips">
+                <button class="chip" id="chip-mine">My words</button>
+                <button class="chip" id="chip-photos">With photo</button>
+            </div>
+            <div id="entry-list" class="entry-list"></div>
+            <div id="empty-state" class="empty-state hidden"></div>
+            <button id="fab-add" class="fab" aria-label="Add word">
+                <svg class="icon"><use href="#icon-plus"/></svg>
+            </button>
+        </section>
+
+        <!-- ===== Detail view ===== -->
+        <section id="view-detail" class="view hidden">
+            <header class="top-bar sub">
+                <button class="ghost-btn" id="detail-back" aria-label="Back">
+                    <svg class="icon"><use href="#icon-back"/></svg>
+                </button>
+                <h1 id="detail-term" class="grow"></h1>
+                <button class="ghost-btn star-btn" id="detail-star" aria-label="Favorite">
+                    <svg class="icon"><use href="#icon-star"/></svg>
+                </button>
+            </header>
+            <div class="detail-body" id="detail-body"></div>
+            <div class="detail-actions">
+                <button class="btn secondary" id="detail-delete">
+                    <svg class="icon"><use href="#icon-trash"/></svg> Delete
+                </button>
+                <button class="btn primary" id="detail-edit">
+                    <svg class="icon"><use href="#icon-edit"/></svg> Edit
+                </button>
+            </div>
+        </section>
+
+        <!-- ===== Add / Edit view ===== -->
+        <section id="view-edit" class="view hidden">
+            <header class="top-bar sub">
+                <button class="ghost-btn" id="edit-cancel" aria-label="Cancel">
+                    <svg class="icon"><use href="#icon-back"/></svg>
+                </button>
+                <h1 id="edit-title" class="grow">Add word</h1>
+            </header>
+            <form id="edit-form" class="edit-form" novalidate>
+                <label class="field">
+                    <span>Word / abbreviation *</span>
+                    <input type="text" id="f-term" autocomplete="off" required>
+                </label>
+                <label class="field">
+                    <span>Category</span>
+                    <select id="f-category"></select>
+                </label>
+                <label class="field hidden" id="f-newcat-wrap">
+                    <span>New category name</span>
+                    <input type="text" id="f-newcat" autocomplete="off">
+                </label>
+                <label class="field">
+                    <span>Definition · English</span>
+                    <textarea id="f-en" rows="3"></textarea>
+                </label>
+                <label class="field">
+                    <span>Definition · Deutsch</span>
+                    <textarea id="f-de" rows="3"></textarea>
+                </label>
+                <label class="field">
+                    <span>Definition · Svenska</span>
+                    <textarea id="f-sv" rows="3"></textarea>
+                </label>
+                <label class="field">
+                    <span>Notes (optional)</span>
+                    <textarea id="f-notes" rows="2"></textarea>
+                </label>
+                <div class="field">
+                    <span>Photo / screenshot</span>
+                    <div class="photo-edit">
+                        <img id="f-photo-preview" class="hidden" alt="Attached photo">
+                        <div class="photo-buttons">
+                            <label class="btn secondary photo-pick">
+                                <svg class="icon"><use href="#icon-camera"/></svg>
+                                <span id="f-photo-label">Add photo</span>
+                                <input type="file" id="f-photo" accept="image/*" hidden>
+                            </label>
+                            <button type="button" class="btn secondary hidden" id="f-photo-remove">Remove</button>
+                        </div>
+                    </div>
+                </div>
+                <div class="form-actions">
+                    <button type="button" class="btn secondary" id="edit-cancel2">Cancel</button>
+                    <button type="submit" class="btn primary" id="edit-save">Save</button>
+                </div>
+            </form>
+        </section>
+
+        <!-- ===== Guide view ===== -->
+        <section id="view-guide" class="view hidden">
+            <header class="top-bar">
+                <h1>How this works</h1>
+            </header>
+            <div class="guide-body" id="guide-body"></div>
+        </section>
+
+        <!-- ===== Settings view ===== -->
+        <section id="view-settings" class="view hidden">
+            <header class="top-bar">
+                <h1>Settings</h1>
+            </header>
+            <div class="settings-body">
+                <div class="card">
+                    <h2>Your dictionary</h2>
+                    <p id="stats-line" class="muted"></p>
+                </div>
+                <div class="card">
+                    <h2>Backup</h2>
+                    <p class="muted">Export saves everything — words, favorites, photos and dates — into one file you can keep in iCloud Drive or Files.</p>
+                    <button class="btn primary wide" id="btn-export">
+                        <svg class="icon"><use href="#icon-export"/></svg> Export backup file
+                    </button>
+                    <label class="btn secondary wide">
+                        <svg class="icon"><use href="#icon-import"/></svg> Import backup file
+                        <input type="file" id="btn-import" accept=".json,application/json" hidden>
+                    </label>
+                    <p class="muted small-note">Import first shows what is inside the file and asks before replacing anything.</p>
+                </div>
+                <div class="card">
+                    <h2>App</h2>
+                    <p class="muted">AMS TechLingo · version <span id="version-label"></span></p>
+                    <p class="muted small-note" id="sw-status"></p>
+                </div>
+            </div>
+        </section>
+
+        <!-- ===== Bottom tab bar ===== -->
+        <nav class="tab-bar" id="tab-bar">
+            <button data-tab="words" class="active">
+                <svg class="icon"><use href="#icon-book"/></svg><span>Words</span>
+            </button>
+            <button data-tab="favorites">
+                <svg class="icon"><use href="#icon-star"/></svg><span>Favorites</span>
+            </button>
+            <button data-tab="guide">
+                <svg class="icon"><use href="#icon-guide"/></svg><span>Guide</span>
+            </button>
+            <button data-tab="settings">
+                <svg class="icon"><use href="#icon-settings"/></svg><span>Settings</span>
+            </button>
+        </nav>
+
+        <!-- ===== Photo lightbox ===== -->
+        <div id="lightbox" class="lightbox hidden">
+            <img id="lightbox-img" alt="Photo">
+        </div>
+
+        <!-- ===== Confirm dialog ===== -->
+        <div id="confirm-overlay" class="confirm-overlay hidden">
+            <div class="confirm-box">
+                <h2 id="confirm-title"></h2>
+                <p id="confirm-text"></p>
+                <div class="confirm-actions">
+                    <button class="btn secondary" id="confirm-no">Cancel</button>
+                    <button class="btn primary" id="confirm-yes">OK</button>
+                </div>
+            </div>
+        </div>
+
+        <div id="toast" class="toast hidden"></div>
+    </div>
+
+    <script src="js/library.js?v=1.0"></script>
+    <script src="js/db.js?v=1.0"></script>
+    <script src="js/app.js?v=1.0"></script>
+</body>
+</html>
