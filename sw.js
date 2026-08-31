@@ -1,5 +1,5 @@
-const CACHE_NAME = 'ams-techlingo-v1';
-const APP_VERSION = '1.0';
+const CACHE_NAME = 'ams-techlingo-v2';
+const APP_VERSION = '1.1';
 
 /* Relative URLs so the same worker serves both local testing and GitHub Pages. */
 const urlsToCache = [

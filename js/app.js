@@ -1,6 +1,34 @@
 /* AMS TechLingo — main app logic. */
 
-const APP_VERSION = '1.0';
+const APP_VERSION = '1.1';
+
+/* Thorough per-version history, newest first — shown collapsed in the Guide. */
+const VERSION_LOG = [
+    {
+        v: '1.1', date: '31 Aug 2026',
+        items: [
+            'The Guide tab is now two foldable sections: “How to use this app” and “Version history”. Both start closed — tap a heading to open or close it.',
+            'Version history rebuilt: every release now lists in detail what changed.'
+        ]
+    },
+    {
+        v: '1.0', date: '31 Aug 2026',
+        items: [
+            'First release of AMS TechLingo — a personal tech dictionary that works fully offline.',
+            'Starter library of ~205 tech terms in 9 areas (AI, Web & Internet, Software & Apps, Hardware & Devices, Cloud & Data, Security & Privacy, Networking, Mac & iPhone, Development & Code).',
+            'Every term has definitions in English, Deutsch and Svenska; the EN / DE / SV switch chooses the reading language, with fallback to English.',
+            'First own word: “Panel” — marked with the “mine” badge and pre-starred.',
+            'Search across terms, all three definitions, notes and categories.',
+            'Category chips plus “My words” and “With photo” filters; sorting by A–Z, newest first, or last updated.',
+            'Favorites: star any word, collected in the Favorites tab.',
+            'Everything is editable — including the library words — and new categories can be created while adding a word.',
+            'One photo or screenshot per word, added from camera or photo library, automatically shrunk to keep the app small, tap to view full-screen.',
+            'Date stamps: every word shows when it was added and, if changed later, when it was last updated. Starring does not count as a change.',
+            'Backup: export writes one file with all words, photos, favorites and dates; import first shows what is inside the file and asks before replacing anything.',
+            'Hand-drawn icon set, amber theme, installable on the iPhone home screen as a PWA.'
+        ]
+    }
+];
 
 const $ = (sel) => document.querySelector(sel);
 
@@ -521,16 +549,16 @@ function renderSettings() {
 }
 
 function renderGuide() {
-    $('#guide-body').innerHTML = `
-        <div class="card">
+    const howTo = `
+        <div class="guide-section">
             <h2>What this app is</h2>
             <p>Your personal tech dictionary. It starts with a library of ~200 common tech terms and grows with every word you add or adjust yourself. Everything lives on this device and works fully offline.</p>
         </div>
-        <div class="card">
+        <div class="guide-section">
             <h2>Languages</h2>
             <p>Every word can have a definition in <strong>English, Deutsch and Svenska</strong>. The EN / DE / SV switch at the top chooses which language the list shows. If a word has no definition in that language, the list falls back to English.</p>
         </div>
-        <div class="card">
+        <div class="guide-section">
             <h2>Finding words</h2>
             <ul>
                 <li><strong>Search</strong> looks through terms, all three definitions, notes and categories.</li>
@@ -539,26 +567,38 @@ function renderGuide() {
                 <li><strong>Sort</strong>: A–Z, newest first, or last updated.</li>
             </ul>
         </div>
-        <div class="card">
+        <div class="guide-section">
             <h2>Adding & editing</h2>
             <p>The orange <strong>+</strong> button adds a word. Tapping any word opens it; <strong>Edit</strong> lets you change everything — including the words from the starter library. Every entry shows when it was <strong>added</strong> and, if changed later, when it was last <strong>updated</strong>. Starring a favorite does not count as a change.</p>
         </div>
-        <div class="card">
+        <div class="guide-section">
             <h2>Photos</h2>
             <p>Each word can carry one photo or screenshot — added from the camera or photo library in the edit screen. Photos are shrunk automatically so the app stays small, and tapping a photo shows it full-screen.</p>
         </div>
-        <div class="card">
+        <div class="guide-section">
             <h2>Favorites</h2>
             <p>Tap the star on any word. The Favorites tab collects them all.</p>
         </div>
-        <div class="card">
+        <div class="guide-section">
             <h2>Backup</h2>
             <p>Settings → <strong>Export backup file</strong> writes one file containing every word, photo, favorite and date. Keep it in iCloud Drive. <strong>Import</strong> reads such a file back — it first shows what is inside and asks before replacing anything. The app never overwrites your data on its own.</p>
-        </div>
-        <div class="card">
-            <h2>Version log</h2>
-            <p class="vlog"><strong>v1.0</strong> — First release: ~205-term starter library in EN/DE/SV, search, categories, sort, favorites, own words with "mine" badge, photo attachments, added/updated date stamps, backup export &amp; import, offline PWA.</p>
         </div>`;
+
+    const history = VERSION_LOG.map((rel) =>
+        `<div class="guide-section">
+            <h2>Version ${esc(rel.v)} · ${esc(rel.date)}</h2>
+            <ul>${rel.items.map((i) => '<li>' + i + '</li>').join('')}</ul>
+        </div>`).join('');
+
+    $('#guide-body').innerHTML = `
+        <details class="card fold">
+            <summary><span class="fold-arrow"></span>How to use this app</summary>
+            <div class="fold-body">${howTo}</div>
+        </details>
+        <details class="card fold">
+            <summary><span class="fold-arrow"></span>Version history</summary>
+            <div class="fold-body">${history}</div>
+        </details>`;
 }
 
 /* ---------- wiring ---------- */

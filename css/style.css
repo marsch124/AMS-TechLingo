@@ -347,10 +347,43 @@ body {
 
 /* ---------- guide / settings ---------- */
 .guide-body, .settings-body { display: flex; flex-direction: column; gap: 12px; }
-.guide-body h2 { font-size: 17px; color: var(--accent); margin: 10px 0 2px; }
 .guide-body p, .guide-body li { color: var(--text); font-size: 15px; }
-.guide-body ul { padding-left: 20px; display: flex; flex-direction: column; gap: 4px; }
-.guide-body .vlog { color: var(--text-muted); font-size: 14px; }
+.guide-body ul { padding-left: 20px; display: flex; flex-direction: column; gap: 6px; }
+
+/* foldable sections (native details/summary) */
+.fold summary {
+    list-style: none;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 17px;
+    font-weight: 800;
+    color: var(--accent);
+    cursor: pointer;
+    padding: 4px 0;
+    -webkit-user-select: none;
+    user-select: none;
+}
+.fold summary::-webkit-details-marker { display: none; }
+.fold-arrow {
+    width: 10px;
+    height: 10px;
+    border-right: 2.5px solid var(--accent);
+    border-bottom: 2.5px solid var(--accent);
+    transform: rotate(-45deg);
+    transition: transform 0.15s ease;
+    flex: none;
+    margin-left: 2px;
+}
+.fold[open] .fold-arrow { transform: rotate(45deg); }
+.fold-body { padding-top: 6px; }
+.guide-section { padding: 10px 0; }
+.guide-section + .guide-section { border-top: 1px solid var(--line); }
+.guide-section h2 {
+    font-size: 15px;
+    color: var(--accent-deep);
+    margin-bottom: 4px;
+}
 
 /* ---------- tab bar ---------- */
 .tab-bar {
