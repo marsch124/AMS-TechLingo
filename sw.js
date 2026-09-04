@@ -1,5 +1,7 @@
-const CACHE_NAME = 'ams-techlingo-v2';
-const APP_VERSION = '1.1';
+const APP_VERSION = '1.2';
+/* The store is named after the app version, so the two can never drift apart:
+   one number to bump, right here. */
+const CACHE_NAME = 'ams-techlingo-v' + APP_VERSION;
 
 /* Relative URLs so the same worker serves both local testing and GitHub Pages. */
 const urlsToCache = [
