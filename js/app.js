@@ -1,6 +1,6 @@
 /* AMS TechLingo — main app logic. */
 
-const APP_VERSION = '1.2';
+const APP_VERSION = '1.3';
 
 /* Thorough per-version history, newest first — shown collapsed in the Guide. */
 const VERSION_LOG = [

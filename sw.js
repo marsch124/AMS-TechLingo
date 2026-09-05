@@ -1,7 +1,8 @@
-const APP_VERSION = '1.2';
+const APP_VERSION = '1.3';
 /* The store is named after the app version, so the two can never drift apart:
    one number to bump, right here. */
-const CACHE_NAME = 'ams-techlingo-v' + APP_VERSION;
+const CACHE_PREFIX = 'ams-techlingo-v';
+const CACHE_NAME = CACHE_PREFIX + APP_VERSION;
 
 /* Relative URLs so the same worker serves both local testing and GitHub Pages. */
 const urlsToCache = [
@@ -30,7 +31,7 @@ self.addEventListener('activate', (event) => {
     event.waitUntil(
         caches.keys().then((cacheNames) => Promise.all(
             cacheNames.map((cacheName) => {
-                if (cacheName !== CACHE_NAME) {
+                if (cacheName.startsWith(CACHE_PREFIX) && cacheName !== CACHE_NAME) {
                     return caches.delete(cacheName);
                 }
                 return Promise.resolve();
