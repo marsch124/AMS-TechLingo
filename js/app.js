@@ -1,6 +1,6 @@
 /* AMS TechLingo — main app logic. */
 
-const APP_VERSION = '1.3';
+const APP_VERSION = '1.4';
 
 /* Thorough per-version history, newest first — shown collapsed in the Guide. */
 const VERSION_LOG = [
@@ -492,15 +492,37 @@ async function exportBackup() {
         entryCount: out.length,
         entries: out
     };
+    /* A plain download link does nothing inside an app opened from the Home Screen,
+       so this used to be able to save no file at all and still announce success.
+       Share sheet first, and only claim a backup once a save has really happened. */
     const blob = new Blob([JSON.stringify(payload)], { type: 'application/json' });
-    const a = document.createElement('a');
-    a.href = URL.createObjectURL(blob);
     const stamp = new Date().toISOString().slice(0, 10);
-    a.download = 'AMS-TechLingo-backup-' + stamp + '.json';
-    document.body.appendChild(a);
-    a.click();
-    a.remove();
-    toast('Backup exported — ' + out.length + ' words');
+    const name = 'AMS-TechLingo-backup-' + stamp + '.json';
+    const file = new File([blob], name, { type: 'application/json' });
+
+    if (navigator.canShare && navigator.canShare({ files: [file] })) {
+        try {
+            await navigator.share({ files: [file], title: 'AMS TechLingo backup' });
+            toast('Backup saved — ' + out.length + ' words');
+        } catch (err) {
+            toast(err && err.name === 'AbortError'
+                ? 'Backup cancelled — nothing was saved'
+                : 'Could not save the backup');
+        }
+        return;
+    }
+    try {                                // desktop browsers, where a download works
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(blob);
+        a.download = name;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+        toast('Backup saved — ' + out.length + ' words');
+    } catch (err) {
+        toast('Could not save the backup');
+    }
 }
 
 async function importBackup(file) {
