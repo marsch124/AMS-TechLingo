@@ -1,9 +1,15 @@
 /* AMS TechLingo — main app logic. */
 
-const APP_VERSION = '1.7';
+const APP_VERSION = '1.8';
 
 /* Thorough per-version history, newest first — shown collapsed in the Guide. */
 const VERSION_LOG = [
+    {
+        v: '1.8', date: '2 Oct 2026',
+        items: [
+            'On a word’s page the photos now sit in a <strong>strip you swipe sideways</strong>, one photo at a time, with small dots under it showing where you are — and the definition sits right under that, instead of below a tall stack of pictures. Tap a photo to see it full-screen as before.'
+        ]
+    },
     {
         v: '1.7', date: '2 Oct 2026',
         items: [
@@ -325,10 +331,17 @@ function openDetail(id) {
     body.innerHTML = '';
 
     if (e.photos.length) {
+        /* A strip you swipe sideways, one photo per page, so the definition is
+           always right under it — however many photos, however tall. */
+        const wrap = document.createElement('div');
+        wrap.className = 'photo-strip-wrap';
         const strip = document.createElement('div');
-        strip.className = 'detail-photos';
+        strip.className = 'photo-strip';
         strip.dataset.testid = 'detail-photos';
+        strip.dataset.index = '0';
         e.photos.forEach((blob, i) => {
+            const slide = document.createElement('div');
+            slide.className = 'photo-slide';
             const img = document.createElement('img');
             img.className = 'detail-photo';
             img.dataset.testid = 'detail-photo';
@@ -338,13 +351,36 @@ function openDetail(id) {
                 $('#lightbox-img').src = img.src;
                 $('#lightbox').classList.remove('hidden');
             };
-            strip.appendChild(img);
+            slide.appendChild(img);
+            strip.appendChild(slide);
         });
-        body.appendChild(strip);
+        wrap.appendChild(strip);
+        if (e.photos.length > 1) {
+            const dots = document.createElement('div');
+            dots.className = 'photo-dots';
+            e.photos.forEach((_, i) => {
+                const d = document.createElement('span');
+                d.className = 'photo-dot' + (i === 0 ? ' on' : '');
+                d.dataset.testid = 'photo-dot';
+                d.dataset.on = i === 0 ? '1' : '0';
+                dots.appendChild(d);
+            });
+            strip.addEventListener('scroll', () => {
+                const i = Math.round(strip.scrollLeft / strip.clientWidth);
+                strip.dataset.index = String(i);
+                dots.querySelectorAll('.photo-dot').forEach((d, k) => {
+                    d.classList.toggle('on', k === i);
+                    d.dataset.on = k === i ? '1' : '0';
+                });
+            }, { passive: true });
+            wrap.appendChild(dots);
+        }
+        body.appendChild(wrap);
     }
 
     const defs = document.createElement('div');
     defs.className = 'card';
+    defs.dataset.testid = 'detail-definition';
     let defsHtml = '<h2>Definition</h2>';
     const langs = [['en', 'English'], ['de', 'Deutsch'], ['sv', 'Svenska']];
     let any = false;
@@ -753,7 +789,7 @@ function renderGuide() {
         </div>
         <div class="guide-section">
             <h2>Photos</h2>
-            <p>Each word can carry <strong>any number of photos or screenshots</strong> — added from the camera or photo library in the edit screen, several at once if you like. Each one shows there as a small thumbnail with a red × to take it away again. Photos are shrunk automatically so the app stays small; on the word’s page they sit one under the other, and tapping one shows it full-screen.</p>
+            <p>Each word can carry <strong>any number of photos or screenshots</strong> — added from the camera or photo library in the edit screen, several at once if you like. Each one shows there as a small thumbnail with a red × to take it away again. Photos are shrunk automatically so the app stays small. On the word’s page they sit in a strip you swipe sideways, one at a time, with dots under it showing where you are — and the definition right under that. Tapping a photo shows it full-screen.</p>
         </div>
         <div class="guide-section">
             <h2>Sharing a word</h2>
