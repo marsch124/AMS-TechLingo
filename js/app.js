@@ -1,9 +1,36 @@
 /* AMS TechLingo — main app logic. */
 
-const APP_VERSION = '1.4';
+const APP_VERSION = '1.5';
 
 /* Thorough per-version history, newest first — shown collapsed in the Guide. */
 const VERSION_LOG = [
+    {
+        v: '1.5', date: '2 Oct 2026',
+        items: [
+            'Share a word: every word now has a <strong>Share</strong> button next to Edit. It opens the iPhone share sheet with the word, its definition (in the language the EN / DE / SV switch is on), your notes and the photo — ready for Messages, Mail, WhatsApp or AirDrop.',
+            'A word you have just added now opens on its own page straight after saving, so it can be shared (or checked) right away instead of the app returning to the list.',
+            'On a Mac or in a browser without a share sheet, Share copies the text so it can be pasted into a message.',
+            'Automated UI tests now run on GitHub with every published change: one checks that the app starts and names its version, one adds a word with a photo and shares it.'
+        ]
+    },
+    {
+        v: '1.4', date: '10 Sep 2026',
+        items: [
+            'Backup export really saves. Inside an app opened from the Home Screen a plain download does nothing, so the export could save no file and still announce success. Export now goes through the share sheet (Save to Files, AirDrop, Mail…) and only reports a backup once one has actually been saved; a cancelled export says so.'
+        ]
+    },
+    {
+        v: '1.3', date: '5 Sep 2026',
+        items: [
+            'Offline-store housekeeping: when a new version arrives, only this app’s own old copies are removed — never those of the other AMS apps sharing the same web address.'
+        ]
+    },
+    {
+        v: '1.2', date: '4 Sep 2026',
+        items: [
+            'The offline store is now named after the app version, so a new version can never be mistaken for an old one.'
+        ]
+    },
     {
         v: '1.1', date: '31 Aug 2026',
         items: [
@@ -205,6 +232,8 @@ function renderList() {
     list.forEach((e) => {
         const card = document.createElement('div');
         card.className = 'entry-card';
+        card.dataset.testid = 'entry-card';
+        card.dataset.id = e.id;
         card.innerHTML =
             '<div class="entry-main">' +
                 '<div class="entry-term">' + esc(e.term) +
@@ -246,6 +275,7 @@ function showView(name) {
         $('#view-' + v).classList.toggle('hidden', v !== name));
     $('#tab-bar').classList.toggle('hidden', name === 'edit');
     $('#fab-add').classList.toggle('hidden', name !== 'list');
+    document.body.dataset.screen = name;   // the tests read this, after the swap
     window.scrollTo(0, 0);
 }
 
@@ -270,6 +300,7 @@ function openDetail(id) {
     const e = state.entries.find((x) => x.id === id);
     if (!e) return;
     state.detailId = id;
+    delete document.body.dataset.share;    // a fresh page, no verdict yet
     $('#detail-term').textContent = e.term;
     const star = $('#detail-star');
     star.classList.toggle('faved', e.favorite);
@@ -432,7 +463,9 @@ async function saveEdit(ev) {
     const idx = state.entries.findIndex((x) => x.id === entry.id);
     if (idx >= 0) state.entries[idx] = entry; else state.entries.push(entry);
     toast(existing ? 'Saved' : 'Added "' + term + '"');
-    if (existing && state.detailId === entry.id) {
+    if (!existing || state.detailId === entry.id) {
+        // A word written just now lands on its own page — where Share and Edit
+        // are — rather than back in the list it would then have to be found in.
         openDetail(entry.id);
     } else {
         switchTab(state.tab === 'favorites' ? 'favorites' : 'words');
@@ -450,6 +483,61 @@ async function deleteCurrent() {
     state.entries = state.entries.filter((x) => x.id !== e.id);
     toast('Deleted "' + e.term + '"');
     switchTab(state.tab === 'favorites' ? 'favorites' : 'words');
+}
+
+/* ---------- share ---------- */
+
+/* The message itself: the word, its definition in the reading language, the notes.
+   Plain text on purpose — it is going into an SMS. */
+function shareTextFor(e, lang) {
+    const lines = [e.term + (e.category ? ' · ' + e.category : '')];
+    const def = defFor(e, lang);
+    if (def) lines.push('', def);
+    if (e.notes) lines.push('', 'Notes: ' + e.notes);
+    lines.push('', '— AMS TechLingo');
+    return lines.join('\n');
+}
+
+/* The photo as a file the share sheet can attach, named after the word. */
+function shareFileFor(e) {
+    if (!e.photo) return null;
+    const type = e.photo.type || 'image/jpeg';
+    const ext = type === 'image/png' ? 'png' : 'jpg';
+    const safe = String(e.term || '').replace(/[\\/:*?"<>|]+/g, '-').trim() || 'word';
+    return new File([e.photo], safe + '.' + ext, { type });
+}
+
+async function shareCurrent() {
+    const e = state.entries.find((x) => x.id === state.detailId);
+    if (!e) return;
+    const text = shareTextFor(e, state.lang);
+    const file = shareFileFor(e);
+    /* Everything above is synchronous on purpose: the share sheet may only open
+       straight from the tap, and an await in between loses that permission. */
+    if (navigator.share) {
+        const data = { title: e.term, text };
+        if (file && navigator.canShare && navigator.canShare({ files: [file] })) data.files = [file];
+        try {
+            await navigator.share(data);
+            document.body.dataset.share = 'shared';
+            return;
+        } catch (err) {
+            if (err && err.name === 'AbortError') {
+                document.body.dataset.share = 'cancelled';
+                return;
+            }
+            // Anything else: fall through and at least hand over the text.
+        }
+    }
+    try {                                // no share sheet here (older Mac browsers)
+        await navigator.clipboard.writeText(text);
+        toast(file ? 'Text copied (without the photo) — paste it into a message'
+                   : 'Text copied — paste it into a message');
+        document.body.dataset.share = 'copied';
+    } catch {
+        toast('Sharing is not available in this browser');
+        document.body.dataset.share = 'failed';
+    }
 }
 
 /* ---------- backup ---------- */
@@ -598,6 +686,10 @@ function renderGuide() {
             <p>Each word can carry one photo or screenshot — added from the camera or photo library in the edit screen. Photos are shrunk automatically so the app stays small, and tapping a photo shows it full-screen.</p>
         </div>
         <div class="guide-section">
+            <h2>Sharing a word</h2>
+            <p>Open a word and tap <strong>Share</strong>. The iPhone share sheet opens with the word, its definition in the language the switch is on, your notes and the photo — choose Messages to send it as a text, or Mail, WhatsApp, AirDrop… A word you have just added opens by itself after saving, so it can be shared straight away. On a Mac without a share sheet, Share copies the text instead, ready to paste.</p>
+        </div>
+        <div class="guide-section">
             <h2>Favorites</h2>
             <p>Tap the star on any word. The Favorites tab collects them all.</p>
         </div>
@@ -660,6 +752,7 @@ function wire() {
     $('#detail-star').onclick = () => toggleFavorite(state.detailId);
     $('#detail-edit').onclick = () => openEdit(state.detailId);
     $('#detail-delete').onclick = deleteCurrent;
+    $('#detail-share').onclick = shareCurrent;
 
     $('#edit-form').onsubmit = saveEdit;
     const cancelEdit = () => {
@@ -737,7 +830,8 @@ function registerSW() {
         $('#empty-state').textContent = 'Storage could not be opened. Please close and reopen the app.';
         return;
     }
-    renderList();
+    switchTab('words');          // the same path as a tap: draws the list and records the screen
     renderSettings();
+    document.documentElement.dataset.ready = '1';   // booted: data read, list drawn
     registerSW();
 })();

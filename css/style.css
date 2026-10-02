@@ -275,10 +275,11 @@ body {
 .date-line { font-size: 13px; color: var(--text-muted); }
 .detail-actions {
     display: flex;
-    gap: 10px;
+    gap: 8px;
     margin-top: 16px;
 }
-.detail-actions .btn { flex: 1; }
+/* Three buttons across — Delete · Share · Edit — have to fit a 375px phone. */
+.detail-actions .btn { flex: 1; padding: 13px 8px; font-size: 15px; gap: 6px; }
 
 /* ---------- buttons ---------- */
 .btn {

@@ -15,7 +15,7 @@
     <link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png">
     <link rel="apple-touch-icon" sizes="180x180" href="icons/apple-touch-icon.png">
     <link rel="manifest" href="manifest.json">
-    <link rel="stylesheet" href="css/style.css?v=1.1">
+    <link rel="stylesheet" href="css/style.css?v=1.5">
 </head>
 <body>
     <svg class="icon-sprite" aria-hidden="true" focusable="false">
@@ -83,20 +83,20 @@
             <header class="top-bar">
                 <h1 id="list-title">TechLingo</h1>
                 <div class="lang-switch" id="lang-switch" role="tablist" aria-label="Language">
-                    <button data-lang="en" class="active">EN</button>
-                    <button data-lang="de">DE</button>
-                    <button data-lang="sv">SV</button>
+                    <button data-lang="en" class="active" data-testid="lang-en">EN</button>
+                    <button data-lang="de" data-testid="lang-de">DE</button>
+                    <button data-lang="sv" data-testid="lang-sv">SV</button>
                 </div>
             </header>
             <div class="search-row">
                 <div class="search-box">
                     <svg class="icon"><use href="#icon-search"/></svg>
-                    <input type="search" id="search-input" placeholder="Search words…" autocomplete="off" autocapitalize="off">
-                    <button id="search-clear" class="ghost-btn hidden" aria-label="Clear search">
+                    <input type="search" id="search-input" data-testid="search-input" placeholder="Search words…" autocomplete="off" autocapitalize="off">
+                    <button id="search-clear" data-testid="search-clear" class="ghost-btn hidden" aria-label="Clear search">
                         <svg class="icon"><use href="#icon-close"/></svg>
                     </button>
                 </div>
-                <select id="sort-select" aria-label="Sort">
+                <select id="sort-select" data-testid="sort-select" aria-label="Sort">
                     <option value="az">A – Z</option>
                     <option value="added">Newest first</option>
                     <option value="updated">Last updated</option>
@@ -104,12 +104,12 @@
             </div>
             <div class="chip-row" id="category-chips"></div>
             <div class="chip-row small" id="extra-chips">
-                <button class="chip" id="chip-mine">My words</button>
-                <button class="chip" id="chip-photos">With photo</button>
+                <button class="chip" id="chip-mine" data-testid="chip-mine">My words</button>
+                <button class="chip" id="chip-photos" data-testid="chip-photos">With photo</button>
             </div>
-            <div id="entry-list" class="entry-list"></div>
-            <div id="empty-state" class="empty-state hidden"></div>
-            <button id="fab-add" class="fab" aria-label="Add word">
+            <div id="entry-list" data-testid="entry-list" class="entry-list"></div>
+            <div id="empty-state" data-testid="empty-state" class="empty-state hidden"></div>
+            <button id="fab-add" data-testid="fab-add" class="fab" aria-label="Add word">
                 <svg class="icon"><use href="#icon-plus"/></svg>
             </button>
         </section>
@@ -117,20 +117,23 @@
         <!-- ===== Detail view ===== -->
         <section id="view-detail" class="view hidden">
             <header class="top-bar sub">
-                <button class="ghost-btn" id="detail-back" aria-label="Back">
+                <button class="ghost-btn" id="detail-back" data-testid="detail-back" aria-label="Back">
                     <svg class="icon"><use href="#icon-back"/></svg>
                 </button>
-                <h1 id="detail-term" class="grow"></h1>
-                <button class="ghost-btn star-btn" id="detail-star" aria-label="Favorite">
+                <h1 id="detail-term" data-testid="detail-term" class="grow"></h1>
+                <button class="ghost-btn star-btn" id="detail-star" data-testid="detail-star" aria-label="Favorite">
                     <svg class="icon"><use href="#icon-star"/></svg>
                 </button>
             </header>
-            <div class="detail-body" id="detail-body"></div>
+            <div class="detail-body" id="detail-body" data-testid="detail-body"></div>
             <div class="detail-actions">
-                <button class="btn secondary" id="detail-delete">
+                <button class="btn secondary" id="detail-delete" data-testid="detail-delete">
                     <svg class="icon"><use href="#icon-trash"/></svg> Delete
                 </button>
-                <button class="btn primary" id="detail-edit">
+                <button class="btn secondary" id="detail-share" data-testid="detail-share">
+                    <svg class="icon"><use href="#icon-export"/></svg> Share
+                </button>
+                <button class="btn primary" id="detail-edit" data-testid="detail-edit">
                     <svg class="icon"><use href="#icon-edit"/></svg> Edit
                 </button>
             </div>
@@ -139,57 +142,57 @@
         <!-- ===== Add / Edit view ===== -->
         <section id="view-edit" class="view hidden">
             <header class="top-bar sub">
-                <button class="ghost-btn" id="edit-cancel" aria-label="Cancel">
+                <button class="ghost-btn" id="edit-cancel" data-testid="edit-cancel" aria-label="Cancel">
                     <svg class="icon"><use href="#icon-back"/></svg>
                 </button>
-                <h1 id="edit-title" class="grow">Add word</h1>
+                <h1 id="edit-title" data-testid="edit-title" class="grow">Add word</h1>
             </header>
             <form id="edit-form" class="edit-form" novalidate>
                 <label class="field">
                     <span>Word / abbreviation *</span>
-                    <input type="text" id="f-term" autocomplete="off" required>
+                    <input type="text" id="f-term" data-testid="f-term" autocomplete="off" required>
                 </label>
                 <label class="field">
                     <span>Category</span>
-                    <select id="f-category"></select>
+                    <select id="f-category" data-testid="f-category"></select>
                 </label>
                 <label class="field hidden" id="f-newcat-wrap">
                     <span>New category name</span>
-                    <input type="text" id="f-newcat" autocomplete="off">
+                    <input type="text" id="f-newcat" data-testid="f-newcat" autocomplete="off">
                 </label>
                 <label class="field">
                     <span>Definition · English</span>
-                    <textarea id="f-en" rows="3"></textarea>
+                    <textarea id="f-en" data-testid="f-en" rows="3"></textarea>
                 </label>
                 <label class="field">
                     <span>Definition · Deutsch</span>
-                    <textarea id="f-de" rows="3"></textarea>
+                    <textarea id="f-de" data-testid="f-de" rows="3"></textarea>
                 </label>
                 <label class="field">
                     <span>Definition · Svenska</span>
-                    <textarea id="f-sv" rows="3"></textarea>
+                    <textarea id="f-sv" data-testid="f-sv" rows="3"></textarea>
                 </label>
                 <label class="field">
                     <span>Notes (optional)</span>
-                    <textarea id="f-notes" rows="2"></textarea>
+                    <textarea id="f-notes" data-testid="f-notes" rows="2"></textarea>
                 </label>
                 <div class="field">
                     <span>Photo / screenshot</span>
                     <div class="photo-edit">
-                        <img id="f-photo-preview" class="hidden" alt="Attached photo">
+                        <img id="f-photo-preview" data-testid="f-photo-preview" class="hidden" alt="Attached photo">
                         <div class="photo-buttons">
                             <label class="btn secondary photo-pick">
                                 <svg class="icon"><use href="#icon-camera"/></svg>
                                 <span id="f-photo-label">Add photo</span>
-                                <input type="file" id="f-photo" accept="image/*" hidden>
+                                <input type="file" id="f-photo" data-testid="f-photo" accept="image/*" hidden>
                             </label>
-                            <button type="button" class="btn secondary hidden" id="f-photo-remove">Remove</button>
+                            <button type="button" class="btn secondary hidden" id="f-photo-remove" data-testid="f-photo-remove">Remove</button>
                         </div>
                     </div>
                 </div>
                 <div class="form-actions">
-                    <button type="button" class="btn secondary" id="edit-cancel2">Cancel</button>
-                    <button type="submit" class="btn primary" id="edit-save">Save</button>
+                    <button type="button" class="btn secondary" id="edit-cancel2" data-testid="edit-cancel2">Cancel</button>
+                    <button type="submit" class="btn primary" id="edit-save" data-testid="edit-save">Save</button>
                 </div>
             </form>
         </section>
@@ -199,7 +202,7 @@
             <header class="top-bar">
                 <h1>How this works</h1>
             </header>
-            <div class="guide-body" id="guide-body"></div>
+            <div class="guide-body" id="guide-body" data-testid="guide-body"></div>
         </section>
 
         <!-- ===== Settings view ===== -->
@@ -210,23 +213,23 @@
             <div class="settings-body">
                 <div class="card">
                     <h2>Your dictionary</h2>
-                    <p id="stats-line" class="muted"></p>
+                    <p id="stats-line" data-testid="stats-line" class="muted"></p>
                 </div>
                 <div class="card">
                     <h2>Backup</h2>
                     <p class="muted">Export saves everything — words, favorites, photos and dates — into one file you can keep in iCloud Drive or Files.</p>
-                    <button class="btn primary wide" id="btn-export">
+                    <button class="btn primary wide" id="btn-export" data-testid="btn-export">
                         <svg class="icon"><use href="#icon-export"/></svg> Export backup file
                     </button>
                     <label class="btn secondary wide">
                         <svg class="icon"><use href="#icon-import"/></svg> Import backup file
-                        <input type="file" id="btn-import" accept=".json,application/json" hidden>
+                        <input type="file" id="btn-import" data-testid="btn-import" accept=".json,application/json" hidden>
                     </label>
                     <p class="muted small-note">Import first shows what is inside the file and asks before replacing anything.</p>
                 </div>
                 <div class="card">
                     <h2>App</h2>
-                    <p class="muted">AMS TechLingo · version <span id="version-label"></span></p>
+                    <p class="muted">AMS TechLingo · version <span id="version-label" data-testid="version-label"></span></p>
                     <p class="muted small-note" id="sw-status"></p>
                 </div>
             </div>
@@ -234,22 +237,22 @@
 
         <!-- ===== Bottom tab bar ===== -->
         <nav class="tab-bar" id="tab-bar">
-            <button data-tab="words" class="active">
+            <button data-tab="words" class="active" data-testid="tab-words">
                 <svg class="icon"><use href="#icon-book"/></svg><span>Words</span>
             </button>
-            <button data-tab="favorites">
+            <button data-tab="favorites" data-testid="tab-favorites">
                 <svg class="icon"><use href="#icon-star"/></svg><span>Favorites</span>
             </button>
-            <button data-tab="guide">
+            <button data-tab="guide" data-testid="tab-guide">
                 <svg class="icon"><use href="#icon-guide"/></svg><span>Guide</span>
             </button>
-            <button data-tab="settings">
+            <button data-tab="settings" data-testid="tab-settings">
                 <svg class="icon"><use href="#icon-settings"/></svg><span>Settings</span>
             </button>
         </nav>
 
         <!-- ===== Photo lightbox ===== -->
-        <div id="lightbox" class="lightbox hidden">
+        <div id="lightbox" data-testid="lightbox" class="lightbox hidden">
             <img id="lightbox-img" alt="Photo">
         </div>
 
@@ -259,17 +262,17 @@
                 <h2 id="confirm-title"></h2>
                 <p id="confirm-text"></p>
                 <div class="confirm-actions">
-                    <button class="btn secondary" id="confirm-no">Cancel</button>
-                    <button class="btn primary" id="confirm-yes">OK</button>
+                    <button class="btn secondary" id="confirm-no" data-testid="confirm-no">Cancel</button>
+                    <button class="btn primary" id="confirm-yes" data-testid="confirm-yes">OK</button>
                 </div>
             </div>
         </div>
 
-        <div id="toast" class="toast hidden"></div>
+        <div id="toast" data-testid="toast" class="toast hidden"></div>
     </div>
 
-    <script src="js/library.js?v=1.1"></script>
-    <script src="js/db.js?v=1.1"></script>
-    <script src="js/app.js?v=1.1"></script>
+    <script src="js/library.js?v=1.5"></script>
+    <script src="js/db.js?v=1.5"></script>
+    <script src="js/app.js?v=1.5"></script>
 </body>
 </html>
