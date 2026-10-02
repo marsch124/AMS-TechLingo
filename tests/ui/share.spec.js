@@ -44,6 +44,8 @@ test('a new word opens on its own page and can be shared with its photo', async 
 
   const shared = await page.evaluate(() => window.__shared);
   expect(shared.title).toBe(term);
+  // The greeting comes first — the receiver should know what this is before the word.
+  expect(shared.text.split('\n')[0]).toBe('Hello, this is Martin who wants to share Tech Lingo with you.');
   expect(shared.text).toContain(term);
   expect(shared.text).toContain('A word made by the test.');
   expect(shared.text).toContain('Told you so');

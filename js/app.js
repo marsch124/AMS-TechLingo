@@ -1,9 +1,15 @@
 /* AMS TechLingo — main app logic. */
 
-const APP_VERSION = '1.5';
+const APP_VERSION = '1.6';
 
 /* Thorough per-version history, newest first — shown collapsed in the Guide. */
 const VERSION_LOG = [
+    {
+        v: '1.6', date: '2 Oct 2026',
+        items: [
+            'A shared word now starts with a greeting: “Hello, this is Martin who wants to share Tech Lingo with you.” — so the person receiving it knows what it is before the word itself. The “— AMS TechLingo” sign-off at the end is gone, since the greeting already says it.'
+        ]
+    },
     {
         v: '1.5', date: '2 Oct 2026',
         items: [
@@ -487,14 +493,15 @@ async function deleteCurrent() {
 
 /* ---------- share ---------- */
 
-/* The message itself: the word, its definition in the reading language, the notes.
-   Plain text on purpose — it is going into an SMS. */
+/* The message itself: a greeting (his words), then the word, its definition in
+   the reading language, the notes. Plain text on purpose — it is going into an SMS. */
+const SHARE_GREETING = 'Hello, this is Martin who wants to share Tech Lingo with you.';
+
 function shareTextFor(e, lang) {
-    const lines = [e.term + (e.category ? ' · ' + e.category : '')];
+    const lines = [SHARE_GREETING, '', e.term + (e.category ? ' · ' + e.category : '')];
     const def = defFor(e, lang);
     if (def) lines.push('', def);
     if (e.notes) lines.push('', 'Notes: ' + e.notes);
-    lines.push('', '— AMS TechLingo');
     return lines.join('\n');
 }
 
@@ -687,7 +694,7 @@ function renderGuide() {
         </div>
         <div class="guide-section">
             <h2>Sharing a word</h2>
-            <p>Open a word and tap <strong>Share</strong>. The iPhone share sheet opens with the word, its definition in the language the switch is on, your notes and the photo — choose Messages to send it as a text, or Mail, WhatsApp, AirDrop… A word you have just added opens by itself after saving, so it can be shared straight away. On a Mac without a share sheet, Share copies the text instead, ready to paste.</p>
+            <p>Open a word and tap <strong>Share</strong>. The iPhone share sheet opens with a short greeting (“Hello, this is Martin who wants to share Tech Lingo with you.”), the word, its definition in the language the switch is on, your notes and the photo — choose Messages to send it as a text, or Mail, WhatsApp, AirDrop… A word you have just added opens by itself after saving, so it can be shared straight away. On a Mac without a share sheet, Share copies the text instead, ready to paste.</p>
         </div>
         <div class="guide-section">
             <h2>Favorites</h2>
