@@ -32,7 +32,7 @@ test('a new word opens on its own page and can be shared with its photo', async 
   await page.getByTestId('f-en').fill('A word made by the test.');
   await page.getByTestId('f-notes').fill('Told you so');
   await page.getByTestId('f-photo').setInputFiles({ name: 'photo.png', mimeType: 'image/png', buffer: PNG });
-  await expect(page.getByTestId('f-photo-preview')).toBeVisible();
+  await expect(page.getByTestId('f-photo-thumb')).toHaveCount(1);
   await page.getByTestId('edit-save').click();
 
   // Saving lands on the word itself, not back in the list.

@@ -1,9 +1,17 @@
 /* AMS TechLingo — main app logic. */
 
-const APP_VERSION = '1.6';
+const APP_VERSION = '1.7';
 
 /* Thorough per-version history, newest first — shown collapsed in the Guide. */
 const VERSION_LOG = [
+    {
+        v: '1.7', date: '2 Oct 2026',
+        items: [
+            'A word can now carry <strong>as many photos or screenshots as you like</strong>, not just one. In the edit screen, Add photo lets you pick several at once; each shows as a small thumbnail with a red × to take it away again. The word’s page shows them one under the other — tap any to see it full-screen.',
+            'Words that already had a photo keep it: it simply becomes the first of the list. The list badge now counts them (“3 photos”), Share attaches every photo, and backup files hold all of them — older backup files still import fine.',
+            'Two new UI tests: one adds two photos, takes one away, adds another, saves, and checks they are still there after a restart and travel with a share; the other proves a word from an older version keeps its photo when the app updates.'
+        ]
+    },
     {
         v: '1.6', date: '2 Oct 2026',
         items: [
@@ -76,7 +84,8 @@ const state = {
     sort: localStorage.getItem('tl-sort') || 'az',
     detailId: null,
     editId: null,            // null = adding new
-    editPhoto: undefined     // undefined = untouched, null = removed, Blob = new photo
+    editPhotos: [],          // the photos as they stand in the edit form
+    photosTouched: false     // did he add or remove one? (only then does it count as a change)
 };
 
 /* ---------- helpers ---------- */
@@ -144,7 +153,7 @@ async function seedIfNeeded() {
         id: uid(), term: e.t, category: e.c,
         en: e.en, de: e.de, sv: e.sv, notes: '',
         favorite: false, source: 'library',
-        createdAt: now, updatedAt: now, photo: null
+        createdAt: now, updatedAt: now, photos: []
     }));
     // Martin's own first word.
     lib.push({
@@ -153,7 +162,7 @@ async function seedIfNeeded() {
         de: 'Ein abgegrenzter Bereich eines App-Fensters oder Bildschirms, der zusammengehörige Bedienelemente oder Informationen bündelt — z. B. ein Seitenpanel oder ein Einstellungs-Panel.',
         sv: 'En avgränsad del av ett appfönster eller en skärm som samlar tillhörande kontroller eller information — t.ex. en sidopanel eller en inställningspanel.',
         notes: '', favorite: true, source: 'own',
-        createdAt: now, updatedAt: now, photo: null
+        createdAt: now, updatedAt: now, photos: []
     });
     await TL_DB.putEntries(lib);
     await TL_DB.setMeta('seeded', true);
@@ -167,7 +176,7 @@ function visibleEntries() {
     if (state.tab === 'favorites') list = list.filter((e) => e.favorite);
     if (state.category) list = list.filter((e) => e.category === state.category);
     if (state.onlyMine) list = list.filter((e) => e.source === 'own');
-    if (state.onlyPhotos) list = list.filter((e) => !!e.photo);
+    if (state.onlyPhotos) list = list.filter((e) => e.photos.length > 0);
     if (state.search) {
         const q = state.search.toLowerCase();
         list = list.filter((e) =>
@@ -244,7 +253,7 @@ function renderList() {
             '<div class="entry-main">' +
                 '<div class="entry-term">' + esc(e.term) +
                     (e.source === 'own' ? '<span class="badge">mine</span>' : '') +
-                    (e.photo ? '<span class="badge photo">photo</span>' : '') +
+                    (e.photos.length ? '<span class="badge photo">' + (e.photos.length === 1 ? 'photo' : e.photos.length + ' photos') + '</span>' : '') +
                 '</div>' +
                 '<div class="entry-def">' + esc(defFor(e, state.lang)) + '</div>' +
                 '<div class="entry-cat">' + esc(e.category || '') + '</div>' +
@@ -315,16 +324,23 @@ function openDetail(id) {
     const body = $('#detail-body');
     body.innerHTML = '';
 
-    if (e.photo) {
-        const img = document.createElement('img');
-        img.className = 'detail-photo';
-        img.alt = 'Photo for ' + e.term;
-        img.src = URL.createObjectURL(e.photo);
-        img.onclick = () => {
-            $('#lightbox-img').src = img.src;
-            $('#lightbox').classList.remove('hidden');
-        };
-        body.appendChild(img);
+    if (e.photos.length) {
+        const strip = document.createElement('div');
+        strip.className = 'detail-photos';
+        strip.dataset.testid = 'detail-photos';
+        e.photos.forEach((blob, i) => {
+            const img = document.createElement('img');
+            img.className = 'detail-photo';
+            img.dataset.testid = 'detail-photo';
+            img.alt = 'Photo ' + (i + 1) + ' for ' + e.term;
+            img.src = URL.createObjectURL(blob);
+            img.onclick = () => {
+                $('#lightbox-img').src = img.src;
+                $('#lightbox').classList.remove('hidden');
+            };
+            strip.appendChild(img);
+        });
+        body.appendChild(strip);
     }
 
     const defs = document.createElement('div');
@@ -386,7 +402,6 @@ function categoryOptions(selected) {
 
 function openEdit(id) {
     state.editId = id;
-    state.editPhoto = undefined;
     const e = id ? state.entries.find((x) => x.id === id) : null;
     $('#edit-title').textContent = e ? 'Edit word' : 'Add word';
     $('#f-term').value = e ? e.term : '';
@@ -395,19 +410,41 @@ function openEdit(id) {
     $('#f-de').value = e ? (e.de || '') : '';
     $('#f-sv').value = e ? (e.sv || '') : '';
     $('#f-notes').value = e ? (e.notes || '') : '';
-    const preview = $('#f-photo-preview');
-    if (e && e.photo) {
-        preview.src = URL.createObjectURL(e.photo);
-        preview.classList.remove('hidden');
-        $('#f-photo-remove').classList.remove('hidden');
-        $('#f-photo-label').textContent = 'Replace photo';
-    } else {
-        preview.classList.add('hidden');
-        $('#f-photo-remove').classList.add('hidden');
-        $('#f-photo-label').textContent = 'Add photo';
-    }
+    state.editPhotos = e ? [...e.photos] : [];
+    state.photosTouched = false;
+    renderPhotoThumbs();
     $('#f-photo').value = '';
     showView('edit');
+}
+
+/* The thumbnails in the edit form: one per photo, each with its own ×. */
+function renderPhotoThumbs() {
+    const wrap = $('#f-photo-list');
+    wrap.innerHTML = '';
+    state.editPhotos.forEach((blob, i) => {
+        const t = document.createElement('div');
+        t.className = 'photo-thumb';
+        t.dataset.testid = 'f-photo-thumb';
+        const img = document.createElement('img');
+        img.alt = 'Photo ' + (i + 1);
+        img.src = URL.createObjectURL(blob);
+        const x = document.createElement('button');
+        x.type = 'button';
+        x.className = 'thumb-x';
+        x.dataset.testid = 'f-photo-remove';
+        x.setAttribute('aria-label', 'Remove photo ' + (i + 1));
+        x.innerHTML = '<svg class="icon"><use href="#icon-close"/></svg>';
+        x.onclick = () => {
+            state.editPhotos.splice(i, 1);
+            state.photosTouched = true;
+            renderPhotoThumbs();
+        };
+        t.appendChild(img);
+        t.appendChild(x);
+        wrap.appendChild(t);
+    });
+    wrap.classList.toggle('hidden', state.editPhotos.length === 0);
+    $('#f-photo-label').textContent = state.editPhotos.length ? 'Add another photo' : 'Add photo';
 }
 
 /* Downscale a picked image so the database stays small. */
@@ -449,7 +486,7 @@ async function saveEdit(ev) {
     const now = new Date().toISOString();
     const existing = state.editId ? state.entries.find((x) => x.id === state.editId) : null;
     const entry = existing ? { ...existing } : {
-        id: uid(), favorite: false, source: 'own', createdAt: now, photo: null
+        id: uid(), favorite: false, source: 'own', createdAt: now, photos: []
     };
     const before = existing
         ? JSON.stringify([existing.term, existing.category, existing.en, existing.de, existing.sv, existing.notes])
@@ -460,9 +497,9 @@ async function saveEdit(ev) {
     entry.de = $('#f-de').value.trim();
     entry.sv = $('#f-sv').value.trim();
     entry.notes = $('#f-notes').value.trim();
-    if (state.editPhoto !== undefined) entry.photo = state.editPhoto;
+    entry.photos = state.editPhotos;
     const after = JSON.stringify([entry.term, entry.category, entry.en, entry.de, entry.sv, entry.notes]);
-    if (!existing || before !== after || state.editPhoto !== undefined) {
+    if (!existing || before !== after || state.photosTouched) {
         entry.updatedAt = now;
     }
     await TL_DB.putEntry(entry);
@@ -482,7 +519,7 @@ async function deleteCurrent() {
     const e = state.entries.find((x) => x.id === state.detailId);
     if (!e) return;
     const ok = await confirmDialog('Delete "' + e.term + '"?',
-        'This removes the word and its photo from this device. There is no undo (except restoring a backup).',
+        'This removes the word and its photos from this device. There is no undo (except restoring a backup).',
         { danger: true, okLabel: 'Delete' });
     if (!ok) return;
     await TL_DB.deleteEntry(e.id);
@@ -505,25 +542,27 @@ function shareTextFor(e, lang) {
     return lines.join('\n');
 }
 
-/* The photo as a file the share sheet can attach, named after the word. */
-function shareFileFor(e) {
-    if (!e.photo) return null;
-    const type = e.photo.type || 'image/jpeg';
-    const ext = type === 'image/png' ? 'png' : 'jpg';
+/* The photos as files the share sheet can attach, named after the word. */
+function shareFilesFor(e) {
     const safe = String(e.term || '').replace(/[\\/:*?"<>|]+/g, '-').trim() || 'word';
-    return new File([e.photo], safe + '.' + ext, { type });
+    return e.photos.map((blob, i) => {
+        const type = blob.type || 'image/jpeg';
+        const ext = type === 'image/png' ? 'png' : 'jpg';
+        const n = e.photos.length > 1 ? '-' + (i + 1) : '';
+        return new File([blob], safe + n + '.' + ext, { type });
+    });
 }
 
 async function shareCurrent() {
     const e = state.entries.find((x) => x.id === state.detailId);
     if (!e) return;
     const text = shareTextFor(e, state.lang);
-    const file = shareFileFor(e);
+    const files = shareFilesFor(e);
     /* Everything above is synchronous on purpose: the share sheet may only open
        straight from the tap, and an await in between loses that permission. */
     if (navigator.share) {
         const data = { title: e.term, text };
-        if (file && navigator.canShare && navigator.canShare({ files: [file] })) data.files = [file];
+        if (files.length && navigator.canShare && navigator.canShare({ files })) data.files = files;
         try {
             await navigator.share(data);
             document.body.dataset.share = 'shared';
@@ -538,13 +577,31 @@ async function shareCurrent() {
     }
     try {                                // no share sheet here (older Mac browsers)
         await navigator.clipboard.writeText(text);
-        toast(file ? 'Text copied (without the photo) — paste it into a message'
-                   : 'Text copied — paste it into a message');
+        toast(files.length ? 'Text copied (without the photos) — paste it into a message'
+                           : 'Text copied — paste it into a message');
         document.body.dataset.share = 'copied';
     } catch {
         toast('Sharing is not available in this browser');
         document.body.dataset.share = 'failed';
     }
+}
+
+/* ---------- photos: 1.6 → 1.7 ---------- */
+
+/* Up to 1.6 a word carried ONE photo (`photo`); from 1.7 it carries a list
+   (`photos`). Older words are moved over once, here, before anything reads
+   them — nothing is dropped, and a word is only written back when its shape
+   actually changed. */
+async function migratePhotos(entries) {
+    const changed = [];
+    entries.forEach((e) => {
+        if (Array.isArray(e.photos)) return;
+        e.photos = e.photo ? [e.photo] : [];
+        delete e.photo;
+        changed.push(e);
+    });
+    if (changed.length) await TL_DB.putEntries(changed);
+    return changed.length;
 }
 
 /* ---------- backup ---------- */
@@ -576,12 +633,14 @@ async function exportBackup() {
     const out = [];
     for (const e of entries) {
         const copy = { ...e };
-        copy.photo = e.photo ? await blobToDataURL(e.photo) : null;
+        copy.photos = [];
+        for (const blob of e.photos) copy.photos.push(await blobToDataURL(blob));
+        delete copy.photo;
         out.push(copy);
     }
     const payload = {
         app: 'AMS TechLingo',
-        formatVersion: 1,
+        formatVersion: 2,              // 2 = a list of photos per word (1 had one)
         appVersion: APP_VERSION,
         exportedAt: new Date().toISOString(),
         entryCount: out.length,
@@ -633,18 +692,22 @@ async function importBackup(file) {
         return;
     }
     const n = payload.entries.length;
-    const photos = payload.entries.filter((e) => e.photo).length;
+    /* Backups from 1.6 and before carry one `photo`; from 1.7 a `photos` list. Both import. */
+    const photoList = (e) => (Array.isArray(e.photos) ? e.photos : (e.photo ? [e.photo] : []));
+    const withPhotos = payload.entries.filter((e) => photoList(e).length).length;
+    const photoCount = payload.entries.reduce((s, e) => s + photoList(e).length, 0);
     const current = state.entries.length;
     const ok = await confirmDialog('Replace everything?',
-        'The backup contains ' + n + ' words (' + photos + ' with photos), exported on ' +
+        'The backup contains ' + n + ' words (' + photoCount + ' photos on ' + withPhotos + ' of them), exported on ' +
         fmtDate(payload.exportedAt) + '.\n\nImporting REPLACES the ' + current +
         ' words currently on this device.',
         { danger: true, okLabel: 'Replace' });
     if (!ok) return;
-    const entries = payload.entries.map((e) => ({
-        ...e,
-        photo: e.photo ? dataURLToBlob(e.photo) : null
-    }));
+    const entries = payload.entries.map((e) => {
+        const out = { ...e, photos: photoList(e).map(dataURLToBlob) };
+        delete out.photo;
+        return out;
+    });
     await TL_DB.clearEntries();
     await TL_DB.putEntries(entries);
     await TL_DB.setMeta('seeded', true);
@@ -659,7 +722,7 @@ function renderSettings() {
     const total = state.entries.length;
     const own = state.entries.filter((e) => e.source === 'own').length;
     const favs = state.entries.filter((e) => e.favorite).length;
-    const photos = state.entries.filter((e) => e.photo).length;
+    const photos = state.entries.reduce((s, e) => s + e.photos.length, 0);
     $('#stats-line').textContent =
         total + ' words · ' + own + ' of your own · ' + favs + ' favorites · ' + photos + ' photos';
     $('#version-label').textContent = APP_VERSION;
@@ -690,11 +753,11 @@ function renderGuide() {
         </div>
         <div class="guide-section">
             <h2>Photos</h2>
-            <p>Each word can carry one photo or screenshot — added from the camera or photo library in the edit screen. Photos are shrunk automatically so the app stays small, and tapping a photo shows it full-screen.</p>
+            <p>Each word can carry <strong>any number of photos or screenshots</strong> — added from the camera or photo library in the edit screen, several at once if you like. Each one shows there as a small thumbnail with a red × to take it away again. Photos are shrunk automatically so the app stays small; on the word’s page they sit one under the other, and tapping one shows it full-screen.</p>
         </div>
         <div class="guide-section">
             <h2>Sharing a word</h2>
-            <p>Open a word and tap <strong>Share</strong>. The iPhone share sheet opens with a short greeting (“Hello, this is Martin who wants to share Tech Lingo with you.”), the word, its definition in the language the switch is on, your notes and the photo — choose Messages to send it as a text, or Mail, WhatsApp, AirDrop… A word you have just added opens by itself after saving, so it can be shared straight away. On a Mac without a share sheet, Share copies the text instead, ready to paste.</p>
+            <p>Open a word and tap <strong>Share</strong>. The iPhone share sheet opens with a short greeting (“Hello, this is Martin who wants to share Tech Lingo with you.”), the word, its definition in the language the switch is on, your notes and the photos — choose Messages to send it as a text, or Mail, WhatsApp, AirDrop… A word you have just added opens by itself after saving, so it can be shared straight away. On a Mac without a share sheet, Share copies the text instead, ready to paste.</p>
         </div>
         <div class="guide-section">
             <h2>Favorites</h2>
@@ -775,26 +838,20 @@ function wire() {
     };
 
     $('#f-photo').onchange = async (e) => {
-        const file = e.target.files && e.target.files[0];
-        if (!file) return;
-        try {
-            const blob = await processPhoto(file);
-            state.editPhoto = blob;
-            const preview = $('#f-photo-preview');
-            preview.src = URL.createObjectURL(blob);
-            preview.classList.remove('hidden');
-            $('#f-photo-remove').classList.remove('hidden');
-            $('#f-photo-label').textContent = 'Replace photo';
-        } catch {
-            toast('Could not read that image');
+        const files = Array.from(e.target.files || []);   // copy first — the reset below empties the list
+        e.target.value = '';
+        if (!files.length) return;
+        let failed = 0;
+        for (const file of files) {
+            try {
+                state.editPhotos.push(await processPhoto(file));
+                state.photosTouched = true;
+            } catch {
+                failed++;
+            }
         }
-    };
-    $('#f-photo-remove').onclick = () => {
-        state.editPhoto = null;
-        $('#f-photo-preview').classList.add('hidden');
-        $('#f-photo-remove').classList.add('hidden');
-        $('#f-photo-label').textContent = 'Add photo';
-        $('#f-photo').value = '';
+        renderPhotoThumbs();
+        if (failed) toast(failed === files.length ? 'Could not read that image' : 'Could not read ' + failed + ' of the images');
     };
 
     $('#lightbox').onclick = () => $('#lightbox').classList.add('hidden');
@@ -831,6 +888,7 @@ function registerSW() {
     renderGuide();
     try {
         state.entries = await seedIfNeeded();
+        await migratePhotos(state.entries);
     } catch (err) {
         console.error('DB error', err);
         $('#empty-state').classList.remove('hidden');
