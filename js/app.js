@@ -1,9 +1,15 @@
 /* AMS TechLingo — main app logic. */
 
-const APP_VERSION = '1.8';
+const APP_VERSION = '1.9';
 
 /* Thorough per-version history, newest first — shown collapsed in the Guide. */
 const VERSION_LOG = [
+    {
+        v: '1.9', date: '2 Oct 2026',
+        items: [
+            'Search now puts the word itself first. Searching “switch” used to list Checkbox, Control Center and Dock above Switch, simply because the list stayed alphabetical. Now a word whose <strong>name</strong> matches comes first (an exact name, then names starting with what you typed, then names containing it), then words whose definition uses it as a whole word, and only then words that merely mention something like it (“switching”) or have it in their notes or category. Within each group your chosen sort still applies.'
+        ]
+    },
     {
         v: '1.8', date: '2 Oct 2026',
         items: [
@@ -183,8 +189,8 @@ function visibleEntries() {
     if (state.category) list = list.filter((e) => e.category === state.category);
     if (state.onlyMine) list = list.filter((e) => e.source === 'own');
     if (state.onlyPhotos) list = list.filter((e) => e.photos.length > 0);
-    if (state.search) {
-        const q = state.search.toLowerCase();
+    const q = state.search.toLowerCase();
+    if (q) {
         list = list.filter((e) =>
             (e.term || '').toLowerCase().includes(q) ||
             (e.en || '').toLowerCase().includes(q) ||
@@ -194,14 +200,33 @@ function visibleEntries() {
             (e.category || '').toLowerCase().includes(q));
     }
     list = [...list];
-    if (state.sort === 'az') {
-        list.sort((a, b) => a.term.localeCompare(b.term, undefined, { sensitivity: 'base' }));
-    } else if (state.sort === 'added') {
-        list.sort((a, b) => (b.createdAt || '').localeCompare(a.createdAt || ''));
+    const bySort = (a, b) => {
+        if (state.sort === 'az') return a.term.localeCompare(b.term, undefined, { sensitivity: 'base' });
+        if (state.sort === 'added') return (b.createdAt || '').localeCompare(a.createdAt || '');
+        return (b.updatedAt || '').localeCompare(a.updatedAt || '');
+    };
+    if (q) {
+        /* The word itself first, then the words that use it — never the alphabet
+           deciding that “Checkbox” beats “Switch” for the search “switch”. */
+        const rank = new Map(list.map((e) => [e.id, searchRank(e, q)]));
+        list.sort((a, b) => (rank.get(a.id) - rank.get(b.id)) || bySort(a, b));
     } else {
-        list.sort((a, b) => (b.updatedAt || '').localeCompare(a.updatedAt || ''));
+        list.sort(bySort);
     }
     return list;
+}
+
+/* 0 the name is what was typed · 1 the name starts with it · 2 the name contains it
+   · 3 a definition uses it as a whole word · 4 it merely appears somewhere
+   (inside another word, in the notes, in the category). */
+function searchRank(e, q) {
+    const term = (e.term || '').toLowerCase();
+    if (term === q) return 0;
+    if (term.startsWith(q)) return 1;
+    if (term.includes(q)) return 2;
+    const whole = new RegExp('(^|[^\\p{L}\\p{N}])' + q.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '([^\\p{L}\\p{N}]|$)', 'iu');
+    if ([e.en, e.de, e.sv].some((d) => d && whole.test(d))) return 3;
+    return 4;
 }
 
 function renderCategoryChips() {
@@ -247,6 +272,8 @@ function renderList() {
     const frag = document.createDocumentFragment();
     const counter = document.createElement('div');
     counter.className = 'count-line';
+    counter.dataset.testid = 'count-line';
+    counter.dataset.count = String(list.length);
     counter.textContent = list.length + (list.length === 1 ? ' word' : ' words');
     frag.appendChild(counter);
 
@@ -321,6 +348,7 @@ function openDetail(id) {
     const e = state.entries.find((x) => x.id === id);
     if (!e) return;
     state.detailId = id;
+    $('#view-detail').dataset.id = id;
     delete document.body.dataset.share;    // a fresh page, no verdict yet
     $('#detail-term').textContent = e.term;
     const star = $('#detail-star');
@@ -777,7 +805,7 @@ function renderGuide() {
         <div class="guide-section">
             <h2>Finding words</h2>
             <ul>
-                <li><strong>Search</strong> looks through terms, all three definitions, notes and categories.</li>
+                <li><strong>Search</strong> looks through terms, all three definitions, notes and categories. A word whose <strong>name</strong> matches comes first, then words whose definition uses what you typed, then the rest.</li>
                 <li><strong>Category chips</strong> narrow the list to one area; tap again to clear.</li>
                 <li><strong>My words</strong> shows only entries you created; <strong>With photo</strong> only entries that have a picture.</li>
                 <li><strong>Sort</strong>: A–Z, newest first, or last updated.</li>

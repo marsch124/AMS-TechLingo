@@ -1,4 +1,4 @@
-const APP_VERSION = '1.8';
+const APP_VERSION = '1.9';
 /* The store is named after the app version, so the two can never drift apart:
    one number to bump, right here. */
 const CACHE_PREFIX = 'ams-techlingo-v';
