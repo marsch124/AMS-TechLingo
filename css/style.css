@@ -266,6 +266,12 @@ body {
 }
 .card p { overflow-wrap: anywhere; }
 .def-block + .def-block { margin-top: 12px; }
+.card-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 10px; }
+.card-head h2 { margin-bottom: 0; }
+.lang-switch.small button { font-size: 0.8125rem; padding: 6px 10px; }
+.def-main p { font-size: 1.125rem; line-height: 1.5; }
+.def-others { margin-top: 14px; padding-top: 12px; border-top: 1px solid var(--line); }
+.def-other p { font-size: 0.9375rem; color: var(--text-muted); }
 .listen-btn { margin-top: 14px; padding: 9px 14px; font-size: 0.9375rem; }
 .def-lang {
     font-size: 0.75rem;

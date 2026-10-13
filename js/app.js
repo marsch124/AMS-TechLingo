@@ -1,9 +1,15 @@
 /* AMS TechLingo — main app logic. */
 
-const APP_VERSION = '1.15';
+const APP_VERSION = '1.16';
 
 /* Thorough per-version history, newest first — shown collapsed in the Guide. */
 const VERSION_LOG = [
+    {
+        v: '1.16', date: '13 Oct 2026',
+        items: [
+            'A word’s page now follows the EN / DE / SV switch: the chosen language comes first and large, the other two sit smaller under it, and the same switch is right there on the page. If the word has no definition in the chosen language yet, the page says so and still shows the others.'
+        ]
+    },
     {
         v: '1.15', date: '13 Oct 2026',
         items: [
@@ -481,30 +487,7 @@ function openDetail(id) {
         body.appendChild(wrap);
     }
 
-    const defs = document.createElement('div');
-    defs.className = 'card';
-    defs.dataset.testid = 'detail-definition';
-    let defsHtml = '<h2>Definition</h2>';
-    const langs = [['en', 'English'], ['de', 'Deutsch'], ['sv', 'Svenska']];
-    let any = false;
-    langs.forEach(([code, label]) => {
-        if (e[code]) {
-            any = true;
-            defsHtml += '<div class="def-block"><div class="def-lang">' + label + '</div><p>' + esc(e[code]) + '</p></div>';
-        }
-    });
-    if (!any) defsHtml += '<p class="muted">No definition yet — tap Edit to write one.</p>';
-    defs.innerHTML = defsHtml;
-    if (any) {
-        const listen = document.createElement('button');
-        listen.className = 'btn secondary listen-btn';
-        listen.id = 'detail-listen';
-        listen.dataset.testid = 'detail-listen';
-        listen.innerHTML = '<svg class="icon"><use href="#icon-speaker"/></svg> <span>Listen</span>';
-        listen.onclick = readAloud;
-        defs.appendChild(listen);
-    }
-    body.appendChild(defs);
+    body.appendChild(definitionCard(e));
 
     if (e.notes) {
         const n = document.createElement('div');
@@ -525,6 +508,55 @@ function openDetail(id) {
     body.appendChild(info);
 
     showView('detail');
+}
+
+const LANG_LABEL = { en: 'English', de: 'Deutsch', sv: 'Svenska' };
+
+/* The definition card: the chosen language first and large, the other two
+   smaller under it, and the EN / DE / SV switch right there on the page. */
+function definitionCard(e) {
+    const card = document.createElement('div');
+    card.className = 'card';
+    card.dataset.testid = 'detail-definition';
+    const chosen = state.lang;
+    const any = ['en', 'de', 'sv'].some((l) => e[l]);
+    const others = ['en', 'de', 'sv'].filter((l) => l !== chosen && e[l]);
+    let html = '<div class="card-head"><h2>Definition</h2>' +
+        '<div class="lang-switch small" id="detail-lang-switch" role="group" aria-label="Language">' +
+        ['en', 'de', 'sv'].map((l) =>
+            '<button type="button" data-lang="' + l + '" data-testid="detail-lang-' + l + '"' +
+            (l === chosen ? ' class="active"' : '') + '>' + l.toUpperCase() + '</button>').join('') +
+        '</div></div>';
+    if (e[chosen]) {
+        html += '<div class="def-block def-main" data-testid="def-main" data-lang="' + chosen + '">' +
+            '<div class="def-lang">' + LANG_LABEL[chosen] + '</div><p>' + esc(e[chosen]) + '</p></div>';
+    } else {
+        html += '<div class="def-block def-main" data-testid="def-main" data-lang="' + chosen + '" data-missing="1">' +
+            '<div class="def-lang">' + LANG_LABEL[chosen] + '</div><p class="muted">' +
+            (any ? 'No ' + LANG_LABEL[chosen] + ' definition yet — tap Edit to add one.'
+                 : 'No definition yet — tap Edit to write one.') + '</p></div>';
+    }
+    if (any) {
+        html += '<button type="button" class="btn secondary listen-btn" id="detail-listen" data-testid="detail-listen">' +
+            '<svg class="icon"><use href="#icon-speaker"/></svg> <span>Listen</span></button>';
+    }
+    if (others.length) {
+        html += '<div class="def-others">' + others.map((l) =>
+            '<div class="def-block def-other" data-testid="def-other" data-lang="' + l + '">' +
+            '<div class="def-lang">' + LANG_LABEL[l] + '</div><p>' + esc(e[l]) + '</p></div>').join('') + '</div>';
+    }
+    card.innerHTML = html;
+    const listen = card.querySelector('#detail-listen');
+    if (listen) listen.onclick = readAloud;
+    card.querySelectorAll('#detail-lang-switch button').forEach((b) => {
+        b.onclick = () => {
+            state.lang = b.dataset.lang;
+            localStorage.setItem('tl-lang', state.lang);
+            stopReading();
+            card.replaceWith(definitionCard(e));   // the same choice the list uses
+        };
+    });
+    return card;
 }
 
 /* ---------- add / edit ---------- */
@@ -976,7 +1008,7 @@ function renderGuide() {
         </div>
         <div class="guide-section">
             <h2>Languages</h2>
-            <p>Every word can have a definition in <strong>English, Deutsch and Svenska</strong>. The EN / DE / SV switch at the top chooses which language the list shows. If a word has no definition in that language, the list falls back to English.</p>
+            <p>Every word can have a definition in <strong>English, Deutsch and Svenska</strong>. The EN / DE / SV switch at the top chooses which language the list shows; if a word has no definition in that language, the list falls back to English. On a word’s page the chosen language comes first and large, the other two sit smaller under it, and the same switch is right there on the page.</p>
         </div>
         <div class="guide-section">
             <h2>Text size</h2>
