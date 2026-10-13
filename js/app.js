@@ -1,9 +1,15 @@
 /* AMS TechLingo — main app logic. */
 
-const APP_VERSION = '1.28';
+const APP_VERSION = '1.29';
 
 /* Thorough per-version history, newest first — shown collapsed in the Guide. */
 const VERSION_LOG = [
+    {
+        v: '1.29', date: '13 Oct 2026',
+        items: [
+            'Full-screen photos: tap a photo on a word’s page and you can now swipe sideways through all of that word’s photos, with “2 of 3” and a close button at the top. Press and hold a photo to select and copy the text in it (iOS Live Text), handy for screenshots.'
+        ]
+    },
     {
         v: '1.28', date: '13 Oct 2026',
         items: [
@@ -666,7 +672,7 @@ const scrollMemory = { list: 0, listTab: null };
 function showView(name) {
     const leaving = document.body.dataset.screen;
     if (leaving === 'list') { scrollMemory.list = window.scrollY; scrollMemory.listTab = state.tab; }
-    if (leaving === 'detail' && name !== 'detail') { freePictures('detail'); stopReading(); }
+    if (leaving === 'detail' && name !== 'detail') { freePictures('detail'); stopReading(); closeLightbox(); }
     if (leaving === 'edit') freePictures('thumbs');
     ['list', 'detail', 'edit', 'guide', 'settings'].forEach((v) =>
         $('#view-' + v).classList.toggle('hidden', v !== name));
@@ -681,9 +687,43 @@ function showView(name) {
     }
 }
 
+/* Full screen: all of the word's photos in a strip, opened at the one tapped. */
+function openLightbox(e, index) {
+    const strip = $('#lightbox-strip');
+    freePictures('lightbox');
+    strip.innerHTML = '';
+    e.photos.forEach((blob, i) => {
+        const slide = document.createElement('div');
+        slide.className = 'lightbox-slide';
+        const img = document.createElement('img');
+        img.alt = 'Photo ' + (i + 1) + ' of ' + e.photos.length + ' for ' + e.term;
+        img.src = pictureURL('lightbox', blob);
+        slide.appendChild(img);
+        strip.appendChild(slide);
+    });
+    const counter = $('#lightbox-counter');
+    counter.dataset.count = String(e.photos.length);
+    const setIndex = (i) => {
+        strip.dataset.index = String(i);
+        counter.dataset.index = String(i);
+        counter.textContent = e.photos.length > 1 ? (i + 1) + ' of ' + e.photos.length : '';
+    };
+    strip.onscroll = () => setIndex(Math.round(strip.scrollLeft / strip.clientWidth));
+    $('#lightbox').classList.remove('hidden');
+    strip.scrollLeft = index * strip.clientWidth;      // open at the photo that was tapped
+    setIndex(index);
+    document.body.dataset.lightbox = 'open';
+}
+function closeLightbox() {
+    $('#lightbox').classList.add('hidden');
+    freePictures('lightbox');
+    $('#lightbox-strip').innerHTML = '';
+    document.body.dataset.lightbox = 'closed';
+}
+
 /* Picture addresses handed to <img> tags are freed again when the screen that
    used them is left — otherwise every opened word keeps its photos in memory. */
-const liveURLs = { detail: [], thumbs: [] };
+const liveURLs = { detail: [], thumbs: [], lightbox: [] };
 function pictureURL(group, blob) {
     const url = URL.createObjectURL(blob);
     liveURLs[group].push(url);
@@ -749,10 +789,7 @@ function openDetail(id) {
             img.dataset.testid = 'detail-photo';
             img.alt = 'Photo ' + (i + 1) + ' for ' + e.term;
             img.src = pictureURL('detail', blob);
-            img.onclick = () => {
-                $('#lightbox-img').src = img.src;
-                $('#lightbox').classList.remove('hidden');
-            };
+            img.onclick = () => openLightbox(e, i);
             slide.appendChild(img);
             strip.appendChild(slide);
         });
@@ -1485,7 +1522,7 @@ function renderGuide() {
         </div>
         <div class="guide-section">
             <h2>Photos</h2>
-            <p>Each word can carry <strong>any number of photos or screenshots</strong> — added from the camera or photo library in the edit screen, several at once if you like. Each one shows there as a small thumbnail with a red × to take it away again. Photos are shrunk automatically so the app stays small. On the word’s page they sit in a strip you swipe sideways, one at a time, with dots under it showing where you are — and the definition right under that. Tapping a photo shows it full-screen.</p>
+            <p>Each word can carry <strong>any number of photos or screenshots</strong> — added from the camera or photo library in the edit screen, several at once if you like. Each one shows there as a small thumbnail with a red × to take it away again. Photos are shrunk automatically so the app stays small. On the word’s page they sit in a strip you swipe sideways, one at a time, with dots under it showing where you are — and the definition right under that. Tapping a photo shows it full-screen, where you can swipe through all of the word’s photos, see “2 of 3” at the top, and close with the ✕. Press and hold a full-screen photo to select and copy the text in it.</p>
         </div>
         <div class="guide-section">
             <h2>Word of the day</h2>
@@ -1643,7 +1680,7 @@ function wire() {
         if (failed) toast(failed === files.length ? 'Could not read that image' : 'Could not read ' + failed + ' of the images');
     };
 
-    $('#lightbox').onclick = () => $('#lightbox').classList.add('hidden');
+    $('#lightbox-close').onclick = closeLightbox;
 
     $('#btn-export').onclick = exportBackup;
     $('#btn-import').onchange = (e) => {

@@ -577,20 +577,59 @@ body {
 .tab-bar button.active .icon { color: var(--accent); }
 
 /* ---------- lightbox ---------- */
+/* full-screen photos: a strip you swipe sideways, "2 of 3" and a close button on top */
 .lightbox {
     position: fixed;
     inset: 0;
-    background: rgba(0, 0, 0, 0.92);
+    background: rgba(0, 0, 0, 0.94);
+    display: flex;
+    flex-direction: column;
+    z-index: 100;
+}
+.lightbox-top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: calc(env(safe-area-inset-top, 0px) + 10px) 12px 6px 16px;
+    color: #fff;
+}
+.lightbox-counter { font-size: 0.9375rem; font-weight: 700; color: rgba(255, 255, 255, 0.85); }
+.lightbox-close {
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    border: none;
+    background: rgba(255, 255, 255, 0.14);
+    color: #fff;
     display: flex;
     align-items: center;
     justify-content: center;
-    z-index: 100;
-    padding: 16px;
+    cursor: pointer;
 }
-.lightbox img {
+.lightbox-strip {
+    flex: 1;
+    min-height: 0;
+    display: flex;
+    overflow-x: auto;
+    scroll-snap-type: x mandatory;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    padding-bottom: max(env(safe-area-inset-bottom, 0px), 12px);
+}
+.lightbox-strip::-webkit-scrollbar { display: none; }
+.lightbox-slide {
+    flex: 0 0 100%;
+    scroll-snap-align: start;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0 12px;
+}
+.lightbox-slide img {
     max-width: 100%;
     max-height: 100%;
     border-radius: 8px;
+    display: block;
 }
 
 /* ---------- confirm dialog ---------- */
