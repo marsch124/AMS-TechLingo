@@ -14,6 +14,7 @@
     --ok: #6FCF97;
     --radius: 14px;
     --tab-height: 62px;
+    --tap: 44px;              /* Apple's minimum for anything a finger taps */
 }
 
 * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
@@ -89,6 +90,8 @@ body {
     border: none;
     color: var(--text);
     padding: 8px;
+    min-width: var(--tap);
+    min-height: var(--tap);
     border-radius: 10px;
     display: flex;
     align-items: center;
@@ -112,7 +115,8 @@ body {
     color: var(--text-muted);
     font-size: 0.875rem;
     font-weight: 700;
-    padding: 7px 12px;
+    padding: 0 13px;
+    min-height: var(--tap);
     cursor: pointer;
 }
 .lang-switch button.active {
@@ -171,7 +175,7 @@ body {
     font-size: 0.8125rem;
     font-weight: 600;
     padding: 0 10px;
-    height: 31px;
+    height: var(--tap);
     max-width: 130px;
     margin-left: auto;
     flex: none;
@@ -193,7 +197,8 @@ body {
     border: 1px solid var(--line);
     color: var(--text-muted);
     border-radius: 999px;
-    padding: 7px 14px;
+    padding: 0 15px;
+    min-height: var(--tap);
     font-size: 0.875rem;
     font-weight: 600;
     cursor: pointer;
@@ -204,13 +209,13 @@ body {
     border-color: var(--accent);
     color: #241500;
 }
-.chip-row.small .chip { font-size: 0.8125rem; padding: 5px 12px; }
+.chip-row.small .chip { font-size: 0.8125rem; padding: 0 13px; }
 /* the last few words opened, one tap from opening again */
 .recent-row { display: flex; align-items: center; gap: 8px; margin: 2px 0 8px; }
 .recent-label { font-size: 0.75rem; font-weight: 800; letter-spacing: 0.06em; text-transform: uppercase; color: var(--text-muted); flex: none; }
 .recent-chips { flex: 1; min-width: 0; padding-bottom: 0; }
 .recent-chips .chip { color: var(--text); }
-.recent-clear { flex: none; font-size: 0.8125rem; font-weight: 600; text-decoration: none; color: var(--text-muted); }
+.recent-clear { flex: none; font-size: 0.8125rem; font-weight: 600; text-decoration: none; color: var(--text-muted); min-height: var(--tap); padding: 0 8px; }
 
 /* ---------- entry list ---------- */
 /* room at the end so the search bar never covers the last card */
@@ -351,12 +356,12 @@ body {
 .def-block + .def-block { margin-top: 12px; }
 .card-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 10px; }
 .card-head h2 { margin-bottom: 0; }
-.lang-switch.small button { font-size: 0.8125rem; padding: 6px 10px; }
+.lang-switch.small button { font-size: 0.8125rem; padding: 0 11px; }
 .def-main p { font-size: 1.125rem; line-height: 1.5; }
 .def-others { margin-top: 14px; padding-top: 12px; border-top: 1px solid var(--line); }
 .def-other p { font-size: 0.9375rem; color: var(--text-muted); }
 .def-tools { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 14px; }
-.def-tools .btn { padding: 9px 13px; font-size: 0.9375rem; text-decoration: none; }
+.def-tools .btn { padding: 0 13px; min-height: var(--tap); font-size: 0.9375rem; text-decoration: none; }
 .def-lang {
     font-size: 0.75rem;
     font-weight: 800;
@@ -429,7 +434,7 @@ body {
 /* the one red button: quiet, and always last */
 .btn.danger { background: var(--bg-raised); color: var(--danger); border: 1px solid var(--line); }
 .btn.danger:active { background: var(--bg-card); }
-.btn.small { padding: 8px 12px; font-size: 0.875rem; }
+.btn.small { padding: 0 12px; min-height: var(--tap); font-size: 0.875rem; }
 .bin-row { display: flex; align-items: center; gap: 10px; padding: 9px 0; border-top: 1px solid var(--line); }
 .bin-row .grow { overflow-wrap: anywhere; }
 .bin-when { font-size: 0.8125rem; color: var(--text-muted); }
@@ -464,12 +469,12 @@ body {
 .field textarea { resize: vertical; }
 
 .dup-hint { font-size: 0.875rem; color: var(--accent); margin-top: 2px; }
-.link-btn { background: none; border: none; color: var(--accent); font: inherit; font-weight: 800; text-decoration: underline; padding: 4px 2px; cursor: pointer; }
+.link-btn { background: none; border: none; color: var(--accent); font: inherit; font-weight: 800; text-decoration: underline; padding: 0 4px; min-height: var(--tap); cursor: pointer; }
 .input-row { display: flex; gap: 8px; align-items: stretch; }
 .input-row input { flex: 1; min-width: 0; }
 .paste-btn { padding: 0 14px; font-size: 0.875rem; white-space: nowrap; flex: none; }
 .photo-edit { display: flex; flex-direction: column; gap: 10px; }
-.photo-list { display: flex; flex-wrap: wrap; gap: 14px; padding: 8px 8px 2px 0; }
+.photo-list { display: flex; flex-wrap: wrap; gap: 18px; padding: 10px 10px 2px 0; }
 .photo-thumb { position: relative; width: 96px; height: 96px; }
 .photo-thumb img {
     width: 100%;
@@ -484,8 +489,8 @@ body {
     position: absolute;
     top: -9px;
     right: -9px;
-    width: 26px;
-    height: 26px;
+    width: 32px;
+    height: 32px;
     padding: 0;
     border-radius: 50%;
     border: 2px solid var(--bg);
@@ -496,6 +501,8 @@ body {
     justify-content: center;
     cursor: pointer;
 }
+/* the × looks 32px but answers to a 44px finger */
+.thumb-x::before { content: ''; position: absolute; inset: -6px; border-radius: 50%; }
 .thumb-x .icon { width: 14px; height: 14px; }
 .photo-buttons { display: flex; gap: 10px; flex-wrap: wrap; }
 

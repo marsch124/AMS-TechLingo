@@ -1,9 +1,15 @@
 /* AMS TechLingo — main app logic. */
 
-const APP_VERSION = '1.30';
+const APP_VERSION = '1.31';
 
 /* Thorough per-version history, newest first — shown collapsed in the Guide. */
 const VERSION_LOG = [
+    {
+        v: '1.31', date: '13 Oct 2026',
+        items: [
+            'Everything a finger taps is now at least Apple’s 44-point size: the EN / DE / SV switches, the category and filter chips, the sort choice, the stars, the back arrows, the paste and clear buttons in the search, Listen / Copy / Look up, Put back and Rename in Settings, and the × on a photo thumbnail. Fewer missed taps.'
+        ]
+    },
     {
         v: '1.30', date: '13 Oct 2026',
         items: [
