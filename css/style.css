@@ -14,11 +14,6 @@
     --ok: #6FCF97;
     --radius: 14px;
     --tab-height: 62px;
-    /* iOS draws a soft blur over the strip just under the clock in a Home Screen
-       app (flat at the top inset, fading out ~45–50 pt lower). 50px on a phone
-       with a top inset, 0 everywhere else (Mac, iPad without one) — so nothing
-       moves on the Mac. */
-    --under-clock: calc(min(env(safe-area-inset-top, 0px), 1px) * 50);
 }
 
 * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
@@ -35,8 +30,7 @@ body {
     font-size: 16px;
     line-height: 1.45;
     min-height: 100vh;
-    /* every screen's top bar starts clear of the clock AND the blur under it */
-    padding-top: calc(env(safe-area-inset-top) + var(--under-clock));
+    padding-top: env(safe-area-inset-top);
     overscroll-behavior-y: none;
 }
 
@@ -481,8 +475,7 @@ body {
     align-items: center;
     justify-content: center;
     z-index: 100;
-    /* the full-screen photo stays clear of the clock, the blur under it and the home bar */
-    padding: calc(max(env(safe-area-inset-top), 16px) + var(--under-clock)) 16px max(env(safe-area-inset-bottom), 16px);
+    padding: 16px;
 }
 .lightbox img {
     max-width: 100%;
