@@ -1,9 +1,15 @@
 /* AMS TechLingo — main app logic. */
 
-const APP_VERSION = '1.25';
+const APP_VERSION = '1.26';
 
 /* Thorough per-version history, newest first — shown collapsed in the Guide. */
 const VERSION_LOG = [
+    {
+        v: '1.26', date: '13 Oct 2026',
+        items: [
+            'Two more helpers next to Listen on a word’s page: <strong>Copy</strong> puts the word and its definition on the clipboard, ready to paste anywhere; <strong>Look up</strong> opens a web search for the word in Safari, for when your own note is not enough.'
+        ]
+    },
     {
         v: '1.25', date: '13 Oct 2026',
         items: [
@@ -816,10 +822,17 @@ function definitionCard(e) {
             (any ? 'No ' + LANG_LABEL[chosen] + ' definition yet — tap Edit to add one.'
                  : 'No definition yet — tap Edit to write one.') + '</p></div>';
     }
+    html += '<div class="def-tools">';
     if (any) {
         html += '<button type="button" class="btn secondary listen-btn" id="detail-listen" data-testid="detail-listen">' +
             '<svg class="icon"><use href="#icon-speaker"/></svg> <span>Listen</span></button>';
+        html += '<button type="button" class="btn secondary" id="detail-copy" data-testid="detail-copy">' +
+            '<svg class="icon"><use href="#icon-copy"/></svg> Copy</button>';
     }
+    html += '<a class="btn secondary" id="detail-web" data-testid="detail-web" target="_blank" rel="noopener" href="' +
+        'https://www.google.com/search?q=' + encodeURIComponent('define ' + e.term) + '">' +
+        '<svg class="icon"><use href="#icon-globe"/></svg> Look up</a>';
+    html += '</div>';
     if (others.length) {
         html += '<div class="def-others">' + others.map((l) =>
             '<div class="def-block def-other" data-testid="def-other" data-lang="' + l + '">' +
@@ -828,6 +841,8 @@ function definitionCard(e) {
     card.innerHTML = html;
     const listen = card.querySelector('#detail-listen');
     if (listen) listen.onclick = readAloud;
+    const copy = card.querySelector('#detail-copy');
+    if (copy) copy.onclick = () => copyDefinition(e);
     card.querySelectorAll('#detail-lang-switch button').forEach((b) => {
         b.onclick = () => {
             state.lang = b.dataset.lang;
@@ -1071,6 +1086,19 @@ async function pasteInto(target) {
         $('#search-paste').classList.add('hidden');
         renderList();
         document.body.dataset.paste = 'search';
+    }
+}
+
+/* The word and its definition (in the language shown first), onto the clipboard. */
+async function copyDefinition(e) {
+    const lang = e[state.lang] ? state.lang : (['en', 'de', 'sv'].find((l) => e[l]) || 'en');
+    const text = e.term + ' — ' + (e[lang] || '');
+    try {
+        await navigator.clipboard.writeText(text);
+        toast('Copied');
+        document.body.dataset.copied = 'definition';
+    } catch {
+        toast('Copy wasn’t allowed');
     }
 }
 
@@ -1402,8 +1430,8 @@ function renderGuide() {
             <p>Under a word’s definition, <strong>See also</strong> lists related words: the ones this definition mentions by name, and the ones whose definitions mention this word. It comes from the text itself — nothing to set up.</p>
         </div>
         <div class="guide-section">
-            <h2>Listening</h2>
-            <p>Tap <strong>Listen</strong> under a definition and the iPhone reads the word and its definition aloud, in the language the switch is on (or the one the word has). Tap again to stop. The voices are the phone’s own; nicer Swedish or German voices can be downloaded under Settings › Accessibility › Spoken Content › Voices.</p>
+            <h2>Listening, copying, looking up</h2>
+            <p>Under a definition, <strong>Copy</strong> puts the word and its definition on the clipboard, and <strong>Look up</strong> opens a web search for the word in Safari. Tap <strong>Listen</strong> and the iPhone reads the word and its definition aloud, in the language the switch is on (or the one the word has). Tap again to stop. The voices are the phone’s own; nicer Swedish or German voices can be downloaded under Settings › Accessibility › Spoken Content › Voices.</p>
         </div>
         <div class="guide-section">
             <h2>Sharing a word</h2>
