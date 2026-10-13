@@ -252,6 +252,8 @@ body {
 }
 .empty-state .btn { max-width: 100%; overflow-wrap: anywhere; }
 .suggest-row { display: flex; flex-wrap: wrap; justify-content: center; align-items: center; gap: 8px; }
+.see-also-row { display: flex; flex-wrap: wrap; gap: 8px; }
+.see-also-row .chip { color: var(--text); }
 .suggest-row .chip { color: var(--text); }
 
 /* ---------- FAB ---------- */

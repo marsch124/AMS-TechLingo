@@ -1,9 +1,15 @@
 /* AMS TechLingo — main app logic. */
 
-const APP_VERSION = '1.22';
+const APP_VERSION = '1.23';
 
 /* Thorough per-version history, newest first — shown collapsed in the Guide. */
 const VERSION_LOG = [
+    {
+        v: '1.23', date: '13 Oct 2026',
+        items: [
+            'See also: under a word’s definition, a row of related words — the ones this definition mentions by name, and the ones whose definitions mention this word. Toggle leads to Switch, Switch back to Toggle. It comes from the text itself; nothing to set up.'
+        ]
+    },
     {
         v: '1.22', date: '13 Oct 2026',
         items: [
@@ -642,6 +648,28 @@ function openDetail(id) {
 
     body.appendChild(definitionCard(e));
 
+    const related = relatedWords(e);
+    if (related.length) {
+        const card = document.createElement('div');
+        card.className = 'card';
+        card.dataset.testid = 'see-also';
+        card.innerHTML = '<h2>See also</h2>';
+        const row = document.createElement('div');
+        row.className = 'see-also-row';
+        related.forEach((r) => {
+            const b = document.createElement('button');
+            b.type = 'button';
+            b.className = 'chip';
+            b.dataset.testid = 'see-also-chip';
+            b.dataset.id = r.id;
+            b.textContent = r.term;
+            b.onclick = () => openDetail(r.id);
+            row.appendChild(b);
+        });
+        card.appendChild(row);
+        body.appendChild(card);
+    }
+
     if (e.notes) {
         const n = document.createElement('div');
         n.className = 'card';
@@ -661,6 +689,25 @@ function openDetail(id) {
     body.appendChild(info);
 
     showView('detail');
+}
+
+/* Related words, from the text itself: the ones this word's text names, then
+   the ones whose text names this word. Names under three letters are too
+   common to be a link. At most eight. */
+const allText = (e) => fold([e.en, e.de, e.sv, e.notes].join(' '));
+function mentions(text, name) {
+    const n = fold(name);
+    if (n.length < 3) return false;
+    const re = new RegExp('(^|[^\\p{L}\\p{N}])' + n.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '([^\\p{L}\\p{N}]|$)', 'u');
+    return re.test(text);
+}
+function relatedWords(e) {
+    const mine = allText(e);
+    const others = state.entries.filter((x) => alive(x) && x.id !== e.id);
+    const byName = (a, b) => a.term.localeCompare(b.term, undefined, { sensitivity: 'base' });
+    const named = others.filter((x) => mentions(mine, x.term)).sort(byName);
+    const naming = others.filter((x) => !named.includes(x) && mentions(allText(x), e.term)).sort(byName);
+    return [...named, ...naming].slice(0, 8);
 }
 
 const LANG_LABEL = { en: 'English', de: 'Deutsch', sv: 'Svenska' };
@@ -1249,6 +1296,10 @@ function renderGuide() {
         <div class="guide-section">
             <h2>Photos</h2>
             <p>Each word can carry <strong>any number of photos or screenshots</strong> — added from the camera or photo library in the edit screen, several at once if you like. Each one shows there as a small thumbnail with a red × to take it away again. Photos are shrunk automatically so the app stays small. On the word’s page they sit in a strip you swipe sideways, one at a time, with dots under it showing where you are — and the definition right under that. Tapping a photo shows it full-screen.</p>
+        </div>
+        <div class="guide-section">
+            <h2>See also</h2>
+            <p>Under a word’s definition, <strong>See also</strong> lists related words: the ones this definition mentions by name, and the ones whose definitions mention this word. It comes from the text itself — nothing to set up.</p>
         </div>
         <div class="guide-section">
             <h2>Listening</h2>
