@@ -1,9 +1,15 @@
 /* AMS TechLingo — main app logic. */
 
-const APP_VERSION = '1.21';
+const APP_VERSION = '1.22';
 
 /* Thorough per-version history, newest first — shown collapsed in the Guide. */
 const VERSION_LOG = [
+    {
+        v: '1.22', date: '13 Oct 2026',
+        items: [
+            'Search forgives spelling: when nothing is found, the page offers the closest-spelled words — “tooggle” suggests Toggle — one tap away. And accents no longer matter when searching: “lagg” finds “Lägg till”, “cache” finds “Cache”.'
+        ]
+    },
     {
         v: '1.21', date: '13 Oct 2026',
         items: [
@@ -282,15 +288,11 @@ function visibleEntries() {
     if (state.category) list = list.filter((e) => e.category === state.category);
     if (state.onlyMine) list = list.filter((e) => e.source === 'own');
     if (state.onlyPhotos) list = list.filter((e) => e.photos.length > 0);
-    const q = state.search.toLowerCase();
+    const q = fold(state.search);
     if (q) {
         list = list.filter((e) =>
-            (e.term || '').toLowerCase().includes(q) ||
-            (e.en || '').toLowerCase().includes(q) ||
-            (e.de || '').toLowerCase().includes(q) ||
-            (e.sv || '').toLowerCase().includes(q) ||
-            (e.notes || '').toLowerCase().includes(q) ||
-            (e.category || '').toLowerCase().includes(q));
+            fold(e.term).includes(q) || fold(e.en).includes(q) || fold(e.de).includes(q) ||
+            fold(e.sv).includes(q) || fold(e.notes).includes(q) || fold(e.category).includes(q));
     }
     list = [...list];
     const bySort = (a, b) => {
@@ -313,13 +315,46 @@ function visibleEntries() {
    · 3 a definition uses it as a whole word · 4 it merely appears somewhere
    (inside another word, in the notes, in the category). */
 function searchRank(e, q) {
-    const term = (e.term || '').toLowerCase();
+    const term = fold(e.term);
     if (term === q) return 0;
     if (term.startsWith(q)) return 1;
     if (term.includes(q)) return 2;
     const whole = new RegExp('(^|[^\\p{L}\\p{N}])' + q.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '([^\\p{L}\\p{N}]|$)', 'iu');
-    if ([e.en, e.de, e.sv].some((d) => d && whole.test(d))) return 3;
+    if ([e.en, e.de, e.sv].some((d) => d && whole.test(fold(d)))) return 3;
     return 4;
+}
+
+/* Lower-case with the accents taken off, so “lagg” finds “Lägg till”. */
+function fold(s) {
+    return String(s || '').toLowerCase().normalize('NFD').replace(/\p{M}/gu, '');
+}
+
+/* How many letter changes apart two words are. */
+function editDistance(a, b) {
+    const prev = Array.from({ length: b.length + 1 }, (_, i) => i);
+    for (let i = 1; i <= a.length; i++) {
+        let diag = prev[0];
+        prev[0] = i;
+        for (let j = 1; j <= b.length; j++) {
+            const tmp = prev[j];
+            prev[j] = Math.min(prev[j] + 1, prev[j - 1] + 1, diag + (a[i - 1] === b[j - 1] ? 0 : 1));
+            diag = tmp;
+        }
+    }
+    return prev[b.length];
+}
+
+/* The closest-spelled names to what was typed — for the “Did you mean” offer. */
+function closestNames(query) {
+    const q = fold(query);
+    if (q.length < 3) return [];
+    const allow = Math.max(2, Math.floor(q.length / 3));
+    return state.entries.filter(alive)
+        .map((e) => ({ e, d: editDistance(q, fold(e.term)) }))
+        .filter((x) => x.d <= allow)
+        .sort((a, b) => a.d - b.d || a.e.term.localeCompare(b.e.term, undefined, { sensitivity: 'base' }))
+        .slice(0, 3)
+        .map((x) => x.e);
 }
 
 function renderCategoryChips() {
@@ -390,12 +425,41 @@ function renderList() {
             // The word he looked for and does not have: one tap from being added.
             const p = document.createElement('p');
             p.textContent = 'Nothing found for “' + state.search + '”.';
+            const close = closestNames(state.search);
+            if (close.length) {                        // ...unless it is just spelt differently
+                const row = document.createElement('div');
+                row.className = 'suggest-row';
+                row.dataset.testid = 'suggest-row';
+                const lab = document.createElement('span');
+                lab.textContent = 'Did you mean';
+                row.appendChild(lab);
+                close.forEach((e) => {
+                    const b = document.createElement('button');
+                    b.type = 'button';
+                    b.className = 'chip';
+                    b.dataset.testid = 'suggest-chip';
+                    b.dataset.id = e.id;
+                    b.textContent = e.term;
+                    b.onclick = () => {
+                        $('#search-input').value = e.term;
+                        state.search = e.term;
+                        $('#search-clear').classList.remove('hidden');
+                        $('#search-paste').classList.add('hidden');
+                        renderList();
+                    };
+                    row.appendChild(b);
+                });
+                empty.appendChild(p);
+                empty.appendChild(row);
+                p.textContent = 'Nothing found for “' + state.search + '”.';
+            } else {
+                empty.appendChild(p);
+            }
             const add = document.createElement('button');
             add.className = 'btn primary';
             add.dataset.testid = 'empty-add';
             add.innerHTML = '<svg class="icon"><use href="#icon-plus"/></svg> Add “' + esc(state.search) + '” as a new word';
             add.onclick = () => openEdit(null, { term: state.search });
-            empty.appendChild(p);
             empty.appendChild(add);
         } else {
             empty.textContent = state.tab === 'favorites'
@@ -1171,7 +1235,7 @@ function renderGuide() {
         <div class="guide-section">
             <h2>Finding words</h2>
             <ul>
-                <li><strong>Search</strong> looks through terms, all three definitions, notes and categories. A word whose <strong>name</strong> matches comes first, then words whose definition uses what you typed, then the rest.</li>
+                <li><strong>Search</strong> looks through terms, all three definitions, notes and categories. A word whose <strong>name</strong> matches comes first, then words whose definition uses what you typed, then the rest. Accents do not matter (“lagg” finds “Lägg till”), and when nothing is found the page offers the closest-spelled words.</li>
                 <li><strong>Category chips</strong> narrow the list to one area; tap again to clear.</li>
                 <li><strong>My words</strong> shows only entries you created; <strong>With photo</strong> only entries that have a picture.</li>
                 <li><strong>Sort</strong>: A–Z, newest first, or last updated.</li>
