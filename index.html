@@ -15,7 +15,7 @@
     <link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png">
     <link rel="apple-touch-icon" sizes="180x180" href="icons/apple-touch-icon.png">
     <link rel="manifest" href="manifest.json">
-    <link rel="stylesheet" href="css/style.css?v=1.20">
+    <link rel="stylesheet" href="css/style.css?v=1.21">
 </head>
 <body>
     <svg class="icon-sprite" aria-hidden="true" focusable="false">
@@ -118,6 +118,11 @@
             <div class="chip-row small" id="extra-chips">
                 <button class="chip" id="chip-mine" data-testid="chip-mine">My words</button>
                 <button class="chip" id="chip-photos" data-testid="chip-photos">With photo</button>
+            </div>
+            <div class="recent-row hidden" id="recent-row" data-testid="recent-row">
+                <span class="recent-label">Recent</span>
+                <div class="chip-row small recent-chips" id="recent-chips"></div>
+                <button type="button" class="link-btn recent-clear" id="recent-clear" data-testid="recent-clear">clear</button>
             </div>
             <div id="entry-list" data-testid="entry-list" class="entry-list"></div>
             <div id="empty-state" data-testid="empty-state" class="empty-state hidden"></div>
@@ -292,8 +297,8 @@
         <div id="toast" data-testid="toast" class="toast hidden"></div>
     </div>
 
-    <script src="js/library.js?v=1.20"></script>
-    <script src="js/db.js?v=1.20"></script>
-    <script src="js/app.js?v=1.20"></script>
+    <script src="js/library.js?v=1.21"></script>
+    <script src="js/db.js?v=1.21"></script>
+    <script src="js/app.js?v=1.21"></script>
 </body>
 </html>

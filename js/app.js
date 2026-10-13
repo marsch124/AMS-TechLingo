@@ -1,9 +1,15 @@
 /* AMS TechLingo — main app logic. */
 
-const APP_VERSION = '1.20';
+const APP_VERSION = '1.21';
 
 /* Thorough per-version history, newest first — shown collapsed in the Guide. */
 const VERSION_LOG = [
+    {
+        v: '1.21', date: '13 Oct 2026',
+        items: [
+            'Recent: the last eight words you opened now sit in a row under the filters on the Words page, newest first, one tap from opening again — the words you keep going back to, without typing. A small “clear” empties the row.'
+        ]
+    },
     {
         v: '1.20', date: '13 Oct 2026',
         items: [
@@ -334,8 +340,38 @@ function renderCategoryChips() {
     });
 }
 
+/* The last eight words opened, newest first. Kept on this device only. */
+const RECENT_MAX = 8;
+function recentIds() {
+    try { return JSON.parse(localStorage.getItem('tl-recent') || '[]'); } catch { return []; }
+}
+function noteRecent(id) {
+    const ids = [id, ...recentIds().filter((x) => x !== id)].slice(0, RECENT_MAX);
+    localStorage.setItem('tl-recent', JSON.stringify(ids));
+}
+function renderRecent() {
+    const row = $('#recent-row');
+    const wrap = $('#recent-chips');
+    const words = recentIds().map((id) => state.entries.find((e) => e.id === id)).filter((e) => e && alive(e));
+    const show = state.tab === 'words' && !state.search && words.length > 0;
+    row.classList.toggle('hidden', !show);
+    wrap.innerHTML = '';
+    if (!show) return;
+    words.forEach((e) => {
+        const b = document.createElement('button');
+        b.type = 'button';
+        b.className = 'chip';
+        b.dataset.testid = 'recent-chip';
+        b.dataset.id = e.id;
+        b.textContent = e.term;
+        b.onclick = () => openDetail(e.id);
+        wrap.appendChild(b);
+    });
+}
+
 function renderList() {
     renderCategoryChips();
+    renderRecent();
     $('#chip-mine').classList.toggle('active', state.onlyMine);
     $('#chip-photos').classList.toggle('active', state.onlyPhotos);
     $('#list-title').textContent = state.tab === 'favorites' ? 'Favorites' : 'TechLingo';
@@ -480,6 +516,7 @@ function openDetail(id) {
     const e = state.entries.find((x) => x.id === id);
     if (!e) return;
     state.detailId = id;
+    noteRecent(id);
     freePictures('detail');
     $('#view-detail').dataset.id = id;
     delete document.body.dataset.share;    // a fresh page, no verdict yet
@@ -1138,6 +1175,7 @@ function renderGuide() {
                 <li><strong>Category chips</strong> narrow the list to one area; tap again to clear.</li>
                 <li><strong>My words</strong> shows only entries you created; <strong>With photo</strong> only entries that have a picture.</li>
                 <li><strong>Sort</strong>: A–Z, newest first, or last updated.</li>
+                <li><strong>Recent</strong>: the last eight words you opened, newest first, one tap from opening again; “clear” empties the row.</li>
             </ul>
         </div>
         <div class="guide-section">
@@ -1209,6 +1247,7 @@ function wire() {
         renderList();
     };
     $('#search-paste').onclick = () => pasteInto('search');
+    $('#recent-clear').onclick = () => { localStorage.removeItem('tl-recent'); renderRecent(); };
     $('#f-term-paste').onclick = () => pasteInto('term');
     $('#f-term').oninput = updateDupHint;
     $('#dup-open').onclick = async () => {

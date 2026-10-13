@@ -185,6 +185,12 @@ body {
     color: #241500;
 }
 .chip-row.small .chip { font-size: 0.8125rem; padding: 5px 12px; }
+/* the last few words opened, one tap from opening again */
+.recent-row { display: flex; align-items: center; gap: 8px; margin: 2px 0 8px; }
+.recent-label { font-size: 0.75rem; font-weight: 800; letter-spacing: 0.06em; text-transform: uppercase; color: var(--text-muted); flex: none; }
+.recent-chips { flex: 1; min-width: 0; padding-bottom: 0; }
+.recent-chips .chip { color: var(--text); }
+.recent-clear { flex: none; font-size: 0.8125rem; font-weight: 600; text-decoration: none; color: var(--text-muted); }
 
 /* ---------- entry list ---------- */
 /* room at the end so the + button never sits on the last card's star */
