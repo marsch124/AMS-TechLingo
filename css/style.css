@@ -173,7 +173,8 @@ body {
 .chip-row.small .chip { font-size: 13px; padding: 5px 12px; }
 
 /* ---------- entry list ---------- */
-.entry-list { display: flex; flex-direction: column; gap: 8px; }
+/* room at the end so the + button never sits on the last card's star */
+.entry-list { display: flex; flex-direction: column; gap: 8px; padding-bottom: 56px; }
 .entry-card {
     display: flex;
     align-items: flex-start;

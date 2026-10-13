@@ -62,6 +62,31 @@ const TL_DB = (() => {
         deleteEntry(id) {
             return tx('entries', 'readwrite', (s) => s.delete(id));
         },
+        replaceEntries(entries) {
+            /* Clear and refill in ONE transaction: either all of it happens, or
+               nothing changes — a failed restore must never leave the store empty. */
+            return open().then((db) => new Promise((resolve, reject) => {
+                const t = db.transaction('entries', 'readwrite');
+                const s = t.objectStore('entries');
+                let failed = null;
+                t.oncomplete = () => (failed ? reject(failed) : resolve());
+                /* On an abort the queued requests fail first, with no error on the
+                   transaction itself — so always prefer the reason we recorded. */
+                t.onerror = () => reject(failed || t.error || new Error('The words could not be written'));
+                t.onabort = () => reject(failed || t.error || new Error('The restore was stopped'));
+                try {
+                    s.clear();
+                    entries.forEach((e) => s.put(e));
+                } catch (err) {
+                    /* A bad entry makes put() throw on the spot — that does NOT
+                       undo the clear() already queued. Abort explicitly, so the
+                       old words come back. (Proven 13 Oct 2026: without this a
+                       refused restore still emptied the store.) */
+                    failed = err;
+                    t.abort();
+                }
+            }));
+        },
         clearEntries() {
             return tx('entries', 'readwrite', (s) => s.clear());
         },

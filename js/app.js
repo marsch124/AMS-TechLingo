@@ -1,9 +1,20 @@
 /* AMS TechLingo — main app logic. */
 
-const APP_VERSION = '1.10';
+const APP_VERSION = '1.11';
 
 /* Thorough per-version history, newest first — shown collapsed in the Guide. */
 const VERSION_LOG = [
+    {
+        v: '1.11', date: '13 Oct 2026',
+        items: [
+            'Six small things put right after a sweep of the app. A new version arriving while you are typing a word no longer reloads the app under your fingers — it waits until the form is closed.',
+            'Cancel now asks before throwing away what you typed, and the keyboard’s Return key in the word field moves on to the definition instead of saving a half-written word.',
+            'Coming back from a word lands where you were in the list, not at the top.',
+            'The + button no longer covers the last word’s star.',
+            'Restoring a backup is all-or-nothing: if it cannot finish, your words stay exactly as they were.',
+            'Photos shown on a word’s page and in the edit form are let go of again afterwards, so the app no longer grows heavier with every word you open.'
+        ]
+    },
     {
         v: '1.10', date: '13 Oct 2026',
         items: [
@@ -102,6 +113,8 @@ const state = {
     sort: localStorage.getItem('tl-sort') || 'az',
     detailId: null,
     editId: null,            // null = adding new
+    updateWaiting: false,    // a new version arrived while the edit form was open
+    editSnapshot: '',        // the form as it was opened, to know whether Cancel throws anything away
     editPhotos: [],          // the photos as they stand in the edit form
     photosTouched: false     // did he add or remove one? (only then does it count as a change)
 };
@@ -136,8 +149,9 @@ function toast(msg) {
     toast._t = setTimeout(() => el.classList.add('hidden'), 2600);
 }
 
-function confirmDialog(title, text, { danger = false, okLabel = 'OK' } = {}) {
+function confirmDialog(title, text, { danger = false, okLabel = 'OK', kind = '' } = {}) {
     return new Promise((resolve) => {
+        $('#confirm-overlay').dataset.kind = kind;   // which question this is — the tests read it
         $('#confirm-title').textContent = title;
         $('#confirm-text').textContent = text;
         $('#confirm-yes').textContent = okLabel;
@@ -324,22 +338,52 @@ async function toggleFavorite(id) {
 
 /* ---------- navigation ---------- */
 
+/* Where the list was scrolled to when a word was opened — so Back lands there. */
+const scrollMemory = { list: 0, listTab: null };
+
 function showView(name) {
+    const leaving = document.body.dataset.screen;
+    if (leaving === 'list') { scrollMemory.list = window.scrollY; scrollMemory.listTab = state.tab; }
+    if (leaving === 'detail' && name !== 'detail') freePictures('detail');
+    if (leaving === 'edit') freePictures('thumbs');
     ['list', 'detail', 'edit', 'guide', 'settings'].forEach((v) =>
         $('#view-' + v).classList.toggle('hidden', v !== name));
     $('#tab-bar').classList.toggle('hidden', name === 'edit');
     $('#fab-add').classList.toggle('hidden', name !== 'list');
     document.body.dataset.screen = name;   // the tests read this, after the swap
     window.scrollTo(0, 0);
+    if (state.updateWaiting && name !== 'edit') {
+        // A new version arrived while he was typing; the form is closed now.
+        state.updateWaiting = false;
+        window.location.reload();
+    }
+}
+
+/* Picture addresses handed to <img> tags are freed again when the screen that
+   used them is left — otherwise every opened word keeps its photos in memory. */
+const liveURLs = { detail: [], thumbs: [] };
+function pictureURL(group, blob) {
+    const url = URL.createObjectURL(blob);
+    liveURLs[group].push(url);
+    return url;
+}
+function freePictures(group) {
+    liveURLs[group].forEach((u) => URL.revokeObjectURL(u));
+    liveURLs[group] = [];
 }
 
 function switchTab(tab) {
     state.tab = tab;
     document.querySelectorAll('#tab-bar button').forEach((b) =>
         b.classList.toggle('active', b.dataset.tab === tab));
+    const cameFrom = document.body.dataset.screen;
     if (tab === 'words' || tab === 'favorites') {
         showView('list');
         renderList();
+        // Back from a word lands where the list was, not at the top.
+        if ((cameFrom === 'detail' || cameFrom === 'edit') && scrollMemory.listTab === tab) {
+            window.scrollTo(0, scrollMemory.list);
+        }
     } else if (tab === 'guide') {
         showView('guide');
     } else {
@@ -354,6 +398,7 @@ function openDetail(id) {
     const e = state.entries.find((x) => x.id === id);
     if (!e) return;
     state.detailId = id;
+    freePictures('detail');
     $('#view-detail').dataset.id = id;
     delete document.body.dataset.share;    // a fresh page, no verdict yet
     $('#detail-term').textContent = e.term;
@@ -380,7 +425,7 @@ function openDetail(id) {
             img.className = 'detail-photo';
             img.dataset.testid = 'detail-photo';
             img.alt = 'Photo ' + (i + 1) + ' for ' + e.term;
-            img.src = URL.createObjectURL(blob);
+            img.src = pictureURL('detail', blob);
             img.onclick = () => {
                 $('#lightbox-img').src = img.src;
                 $('#lightbox').classList.remove('hidden');
@@ -484,20 +529,28 @@ function openEdit(id) {
     state.photosTouched = false;
     renderPhotoThumbs();
     $('#f-photo').value = '';
+    state.editSnapshot = formSnapshot();   // what the form looked like before he touched it
     showView('edit');
+}
+
+/* The form's text as one string — compared on Cancel to know whether anything was typed. */
+function formSnapshot() {
+    return JSON.stringify([$('#f-term').value, $('#f-category').value, $('#f-newcat').value,
+        $('#f-en').value, $('#f-de').value, $('#f-sv').value, $('#f-notes').value]);
 }
 
 /* The thumbnails in the edit form: one per photo, each with its own ×. */
 function renderPhotoThumbs() {
     const wrap = $('#f-photo-list');
     wrap.innerHTML = '';
+    freePictures('thumbs');
     state.editPhotos.forEach((blob, i) => {
         const t = document.createElement('div');
         t.className = 'photo-thumb';
         t.dataset.testid = 'f-photo-thumb';
         const img = document.createElement('img');
         img.alt = 'Photo ' + (i + 1);
-        img.src = URL.createObjectURL(blob);
+        img.src = pictureURL('thumbs', blob);
         const x = document.createElement('button');
         x.type = 'button';
         x.className = 'thumb-x';
@@ -754,11 +807,11 @@ async function importBackup(file) {
     try {
         payload = JSON.parse(await file.text());
     } catch {
-        await confirmDialog('Not a backup file', 'This file could not be read as an AMS TechLingo backup.', { okLabel: 'OK' });
+        await confirmDialog('Not a backup file', 'This file could not be read as an AMS TechLingo backup.', { okLabel: 'OK', kind: 'import-invalid' });
         return;
     }
     if (!payload || payload.app !== 'AMS TechLingo' || !Array.isArray(payload.entries)) {
-        await confirmDialog('Not a TechLingo backup', 'The file exists but is not an AMS TechLingo backup file.', { okLabel: 'OK' });
+        await confirmDialog('Not a TechLingo backup', 'The file exists but is not an AMS TechLingo backup file.', { okLabel: 'OK', kind: 'import-invalid' });
         return;
     }
     const n = payload.entries.length;
@@ -771,16 +824,21 @@ async function importBackup(file) {
         'The backup contains ' + n + ' words (' + photoCount + ' photos on ' + withPhotos + ' of them), exported on ' +
         fmtDate(payload.exportedAt) + '.\n\nImporting REPLACES the ' + current +
         ' words currently on this device.',
-        { danger: true, okLabel: 'Replace' });
+        { danger: true, okLabel: 'Replace', kind: 'import-preview' });
     if (!ok) return;
     const entries = payload.entries.map((e) => {
         const out = { ...e, photos: photoList(e).map(dataURLToBlob) };
         delete out.photo;
         return out;
     });
-    await TL_DB.clearEntries();
-    await TL_DB.putEntries(entries);
-    await TL_DB.setMeta('seeded', true);
+    try {
+        await TL_DB.replaceEntries(entries);      // one step: all of it, or none of it
+        await TL_DB.setMeta('seeded', true);
+    } catch (err) {
+        await confirmDialog('The backup could not be restored',
+            'Nothing was changed — your words are still exactly as they were.', { okLabel: 'OK', kind: 'import-failed' });
+        return;
+    }
     state.entries = await TL_DB.getAllEntries();
     toast('Imported ' + n + ' words');
     switchTab('words');
@@ -820,7 +878,7 @@ function renderGuide() {
         </div>
         <div class="guide-section">
             <h2>Adding & editing</h2>
-            <p>The orange <strong>+</strong> button adds a word. Tapping any word opens it; <strong>Edit</strong> lets you change everything — including the words from the starter library. Every entry shows when it was <strong>added</strong> and, if changed later, when it was last <strong>updated</strong>. Starring a favorite does not count as a change.</p>
+            <p>The orange <strong>+</strong> button adds a word. Cancel asks first if you have typed something. Tapping any word opens it; <strong>Edit</strong> lets you change everything — including the words from the starter library. Every entry shows when it was <strong>added</strong> and, if changed later, when it was last <strong>updated</strong>. Starring a favorite does not count as a change.</p>
         </div>
         <div class="guide-section">
             <h2>Photos</h2>
@@ -896,12 +954,21 @@ function wire() {
     $('#detail-share').onclick = shareCurrent;
 
     $('#edit-form').onsubmit = saveEdit;
-    const cancelEdit = () => {
+    const cancelEdit = async () => {
+        if (formSnapshot() !== state.editSnapshot || state.photosTouched) {
+            const ok = await confirmDialog('Throw away what you typed?',
+                'The changes to this word will be lost.', { danger: true, okLabel: 'Throw away' });
+            if (!ok) return;
+        }
         if (state.editId) openDetail(state.editId);
         else switchTab(state.tab);
     };
     $('#edit-cancel').onclick = cancelEdit;
     $('#edit-cancel2').onclick = cancelEdit;
+    // Return in the one-line fields moves on to the definition; it must not save a half-written word.
+    const moveOn = (ev) => { if (ev.key === 'Enter') { ev.preventDefault(); $('#f-en').focus(); } };
+    $('#f-term').onkeydown = moveOn;
+    $('#f-newcat').onkeydown = moveOn;
 
     $('#f-category').onchange = (e) => {
         $('#f-newcat-wrap').classList.toggle('hidden', e.target.value !== '__new__');
@@ -947,6 +1014,12 @@ function registerSW() {
     let reloaded = false;
     navigator.serviceWorker.addEventListener('controllerchange', () => {
         if (reloaded) return;
+        if (document.body.dataset.screen === 'edit') {
+            // Never under his fingers: the new version waits until the form is closed.
+            state.updateWaiting = true;
+            document.body.dataset.updateWaiting = '1';
+            return;
+        }
         reloaded = true;
         window.location.reload();
     });
