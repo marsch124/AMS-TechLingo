@@ -1,9 +1,15 @@
 /* AMS TechLingo — main app logic. */
 
-const APP_VERSION = '1.17';
+const APP_VERSION = '1.18';
 
 /* Thorough per-version history, newest first — shown collapsed in the Guide. */
 const VERSION_LOG = [
+    {
+        v: '1.18', date: '13 Oct 2026',
+        items: [
+            'Delete is now the last button on a word’s page, in quiet red, and it no longer asks first: the word goes straight to <strong>Recently deleted</strong> and a “Deleted — Undo” note shows for a few seconds. Settings lists the recently deleted words with a Put back button; after 30 days a deleted word is gone for good.'
+        ]
+    },
     {
         v: '1.17', date: '13 Oct 2026',
         items: [
@@ -177,13 +183,25 @@ function defFor(entry, lang) {
     return entry[lang] || entry.en || entry.de || entry.sv || '';
 }
 
-function toast(msg) {
+function toast(msg, { action = '', onAction = null, ms = 2600 } = {}) {
     const el = $('#toast');
-    el.textContent = msg;
+    el.innerHTML = '';
+    el.appendChild(document.createTextNode(msg));
+    if (action) {                       // e.g. "Undo" — one tap, then the note goes
+        const b = document.createElement('button');
+        b.className = 'toast-action';
+        b.dataset.testid = 'toast-action';
+        b.textContent = action;
+        b.onclick = () => { clearTimeout(toast._t); el.classList.add('hidden'); if (onAction) onAction(); };
+        el.appendChild(b);
+    }
     el.classList.remove('hidden');
     clearTimeout(toast._t);
-    toast._t = setTimeout(() => el.classList.add('hidden'), 2600);
+    toast._t = setTimeout(() => el.classList.add('hidden'), ms);
 }
+
+/* A deleted word is kept, marked, for 30 days — so Delete is never final at once. */
+const alive = (e) => !e.deletedAt;
 
 function confirmDialog(title, text, { danger = false, okLabel = 'OK', kind = '' } = {}) {
     return new Promise((resolve) => {
@@ -240,7 +258,7 @@ async function seedIfNeeded() {
 /* ---------- list rendering ---------- */
 
 function visibleEntries() {
-    let list = state.entries;
+    let list = state.entries.filter(alive);
     if (state.tab === 'favorites') list = list.filter((e) => e.favorite);
     if (state.category) list = list.filter((e) => e.category === state.category);
     if (state.onlyMine) list = list.filter((e) => e.source === 'own');
@@ -286,7 +304,7 @@ function searchRank(e, q) {
 }
 
 function renderCategoryChips() {
-    const cats = [...new Set(state.entries.map((e) => e.category).filter(Boolean))].sort();
+    const cats = [...new Set(state.entries.filter(alive).map((e) => e.category).filter(Boolean))].sort();
     const wrap = $('#category-chips');
     wrap.innerHTML = '';
     const all = document.createElement('button');
@@ -584,7 +602,7 @@ function definitionCard(e) {
 
 function categoryOptions(selected) {
     const cats = [...new Set([
-        ...state.entries.map((e) => e.category).filter(Boolean)
+        ...state.entries.filter(alive).map((e) => e.category).filter(Boolean)
     ])].sort();
     const sel = $('#f-category');
     sel.innerHTML = '';
@@ -727,14 +745,33 @@ async function saveEdit(ev) {
 async function deleteCurrent() {
     const e = state.entries.find((x) => x.id === state.detailId);
     if (!e) return;
-    const ok = await confirmDialog('Delete "' + e.term + '"?',
-        'This removes the word and its photos from this device. There is no undo (except restoring a backup).',
-        { danger: true, okLabel: 'Delete' });
-    if (!ok) return;
-    await TL_DB.deleteEntry(e.id);
-    state.entries = state.entries.filter((x) => x.id !== e.id);
-    toast('Deleted "' + e.term + '"');
+    e.deletedAt = new Date().toISOString();      // kept, marked — see Recently deleted in Settings
+    await TL_DB.putEntry(e);
     switchTab(state.tab === 'favorites' ? 'favorites' : 'words');
+    toast('Deleted “' + e.term + '”', { action: 'Undo', onAction: () => restoreDeleted(e.id), ms: 6000 });
+}
+
+async function restoreDeleted(id) {
+    const e = state.entries.find((x) => x.id === id);
+    if (!e || !e.deletedAt) return;
+    delete e.deletedAt;
+    await TL_DB.putEntry(e);
+    if (!$('#view-list').classList.contains('hidden')) renderList();
+    if (!$('#view-settings').classList.contains('hidden')) renderSettings();
+    toast('“' + e.term + '” is back');
+}
+
+/* At start: whatever has sat in Recently deleted for 30 days is removed for good. */
+async function purgeOldDeleted() {
+    const cutoff = Date.now() - 30 * 24 * 60 * 60 * 1000;
+    const gone = state.entries.filter((e) => e.deletedAt && new Date(e.deletedAt).getTime() < cutoff);
+    for (const e of gone) await TL_DB.deleteEntry(e.id);
+    if (gone.length) state.entries = state.entries.filter((e) => !gone.includes(e));
+}
+
+function daysAgo(iso) {
+    const d = Math.round((Date.now() - new Date(iso).getTime()) / 86400000);
+    return d <= 0 ? 'today' : d === 1 ? 'yesterday' : d + ' days ago';
 }
 
 /* ---------- paste ---------- */
@@ -920,6 +957,7 @@ async function exportBackup() {
     }
     const out = [];
     for (const e of entries) {
+        if (e.deletedAt) continue;                 // the bin is not part of a backup
         const copy = { ...e };
         copy.photos = [];
         for (const blob of e.photos) copy.photos.push(await blobToDataURL(blob));
@@ -1012,10 +1050,27 @@ async function importBackup(file) {
 /* ---------- settings & guide ---------- */
 
 function renderSettings() {
-    const total = state.entries.length;
-    const own = state.entries.filter((e) => e.source === 'own').length;
-    const favs = state.entries.filter((e) => e.favorite).length;
-    const photos = state.entries.reduce((s, e) => s + e.photos.length, 0);
+    const live = state.entries.filter(alive);
+    const total = live.length;
+    const own = live.filter((e) => e.source === 'own').length;
+    const favs = live.filter((e) => e.favorite).length;
+    const photos = live.reduce((s, e) => s + e.photos.length, 0);
+    const bin = state.entries.filter((e) => e.deletedAt)
+        .sort((a, b) => b.deletedAt.localeCompare(a.deletedAt));
+    const binList = $('#bin-list');
+    binList.innerHTML = '';
+    bin.forEach((e) => {
+        const row = document.createElement('div');
+        row.className = 'bin-row';
+        row.dataset.testid = 'bin-row';
+        row.dataset.id = e.id;
+        row.innerHTML = '<div class="grow">' + esc(e.term) +
+            '<div class="bin-when">deleted ' + daysAgo(e.deletedAt) + '</div></div>' +
+            '<button type="button" class="btn secondary small" data-testid="bin-restore">Put back</button>';
+        row.querySelector('button').onclick = () => restoreDeleted(e.id);
+        binList.appendChild(row);
+    });
+    $('#bin-card').classList.toggle('hidden', bin.length === 0);
     $('#stats-line').textContent =
         total + ' words · ' + own + ' of your own · ' + favs + ' favorites · ' + photos + ' photos';
     $('#version-label').textContent = APP_VERSION;
@@ -1046,7 +1101,7 @@ function renderGuide() {
         </div>
         <div class="guide-section">
             <h2>Adding & editing</h2>
-            <p>The orange <strong>+</strong> button adds a word; when a search finds nothing, the page offers to add that word with the name already filled in. <strong>Paste</strong> next to the word field puts in whatever you last copied — a word from Mail or Safari; the search box has the same button. Cancel asks first if you have typed something. Tapping any word opens it; <strong>Edit</strong> lets you change everything — including the words from the starter library. Every entry shows when it was <strong>added</strong> and, if changed later, when it was last <strong>updated</strong>. Starring a favorite does not count as a change.</p>
+            <p>The orange <strong>+</strong> button adds a word; when a search finds nothing, the page offers to add that word with the name already filled in. <strong>Paste</strong> next to the word field puts in whatever you last copied — a word from Mail or Safari; the search box has the same button. Cancel asks first if you have typed something. Tapping any word opens it; <strong>Edit</strong> lets you change everything — including the words from the starter library. <strong>Delete</strong> does not ask: the word goes to Recently deleted (in Settings) and an Undo shows for a few seconds; after 30 days it is gone for good. Every entry shows when it was <strong>added</strong> and, if changed later, when it was last <strong>updated</strong>. Starring a favorite does not count as a change.</p>
         </div>
         <div class="guide-section">
             <h2>Photos</h2>
@@ -1209,6 +1264,7 @@ function registerSW() {
     try {
         state.entries = await seedIfNeeded();
         await migratePhotos(state.entries);
+        await purgeOldDeleted();
     } catch (err) {
         console.error('DB error', err);
         $('#empty-state').classList.remove('hidden');
