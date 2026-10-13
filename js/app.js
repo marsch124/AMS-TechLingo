@@ -1,9 +1,15 @@
 /* AMS TechLingo — main app logic. */
 
-const APP_VERSION = '1.9';
+const APP_VERSION = '1.10';
 
 /* Thorough per-version history, newest first — shown collapsed in the Guide. */
 const VERSION_LOG = [
+    {
+        v: '1.10', date: '13 Oct 2026',
+        items: [
+            'The title and the buttons at the top of every screen sit a little lower on the iPhone, out of the soft blur iOS draws under the clock, so they look sharp again. A photo opened full-screen keeps clear of the clock in the same way. On the Mac nothing moves.'
+        ]
+    },
     {
         v: '1.9', date: '2 Oct 2026',
         items: [
@@ -801,6 +807,7 @@ function renderGuide() {
         <div class="guide-section">
             <h2>Languages</h2>
             <p>Every word can have a definition in <strong>English, Deutsch and Svenska</strong>. The EN / DE / SV switch at the top chooses which language the list shows. If a word has no definition in that language, the list falls back to English.</p>
+            <p>On the iPhone the top of every screen starts a little below the clock, clear of the soft blur iOS draws there, so the title and buttons stay sharp.</p>
         </div>
         <div class="guide-section">
             <h2>Finding words</h2>

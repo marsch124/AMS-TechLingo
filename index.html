@@ -15,7 +15,7 @@
     <link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png">
     <link rel="apple-touch-icon" sizes="180x180" href="icons/apple-touch-icon.png">
     <link rel="manifest" href="manifest.json">
-    <link rel="stylesheet" href="css/style.css?v=1.9">
+    <link rel="stylesheet" href="css/style.css?v=1.10">
 </head>
 <body>
     <svg class="icon-sprite" aria-hidden="true" focusable="false">
@@ -81,7 +81,7 @@
         <!-- ===== Words / Favorites list view ===== -->
         <section id="view-list" class="view">
             <header class="top-bar">
-                <h1 id="list-title">TechLingo</h1>
+                <h1 id="list-title" data-testid="list-title">TechLingo</h1>
                 <div class="lang-switch" id="lang-switch" role="tablist" aria-label="Language">
                     <button data-lang="en" class="active" data-testid="lang-en">EN</button>
                     <button data-lang="de" data-testid="lang-de">DE</button>
@@ -199,7 +199,7 @@
         <!-- ===== Guide view ===== -->
         <section id="view-guide" class="view hidden">
             <header class="top-bar">
-                <h1>How this works</h1>
+                <h1 data-testid="guide-title">How this works</h1>
             </header>
             <div class="guide-body" id="guide-body" data-testid="guide-body"></div>
         </section>
@@ -207,7 +207,7 @@
         <!-- ===== Settings view ===== -->
         <section id="view-settings" class="view hidden">
             <header class="top-bar">
-                <h1>Settings</h1>
+                <h1 data-testid="settings-title">Settings</h1>
             </header>
             <div class="settings-body">
                 <div class="card">
@@ -252,7 +252,7 @@
 
         <!-- ===== Photo lightbox ===== -->
         <div id="lightbox" data-testid="lightbox" class="lightbox hidden">
-            <img id="lightbox-img" alt="Photo">
+            <img id="lightbox-img" data-testid="lightbox-img" alt="Photo">
         </div>
 
         <!-- ===== Confirm dialog ===== -->
@@ -270,8 +270,8 @@
         <div id="toast" data-testid="toast" class="toast hidden"></div>
     </div>
 
-    <script src="js/library.js?v=1.9"></script>
-    <script src="js/db.js?v=1.9"></script>
-    <script src="js/app.js?v=1.9"></script>
+    <script src="js/library.js?v=1.10"></script>
+    <script src="js/db.js?v=1.10"></script>
+    <script src="js/app.js?v=1.10"></script>
 </body>
 </html>
