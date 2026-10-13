@@ -120,8 +120,24 @@ body {
     color: #241500;
 }
 
-/* ---------- search + sort ---------- */
-.search-row { display: flex; gap: 8px; margin-bottom: 10px; }
+/* ---------- search (in a bar at the bottom, under the thumb) + sort ---------- */
+.search-dock {
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: calc(var(--tab-height) + env(safe-area-inset-bottom));
+    z-index: 35;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    max-width: 640px;
+    margin: 0 auto;
+    padding: 8px 16px 10px;
+    background: rgba(26, 18, 6, 0.96);
+    -webkit-backdrop-filter: blur(12px);
+    backdrop-filter: blur(12px);
+}
+.search-dock .search-box { flex: 1; }
 .search-box {
     flex: 1;
     display: flex;
@@ -150,11 +166,15 @@ body {
 #sort-select {
     background: var(--bg-raised);
     border: 1px solid var(--line);
-    border-radius: var(--radius);
+    border-radius: 999px;
     color: var(--text);
-    font-size: 0.875rem;
-    padding: 0 8px;
+    font-size: 0.8125rem;
+    font-weight: 600;
+    padding: 0 10px;
+    height: 31px;
     max-width: 130px;
+    margin-left: auto;
+    flex: none;
 }
 
 /* ---------- chips ---------- */
@@ -193,8 +213,8 @@ body {
 .recent-clear { flex: none; font-size: 0.8125rem; font-weight: 600; text-decoration: none; color: var(--text-muted); }
 
 /* ---------- entry list ---------- */
-/* room at the end so the + button never sits on the last card's star */
-.entry-list { display: flex; flex-direction: column; gap: 8px; padding-bottom: 56px; }
+/* room at the end so the search bar never covers the last card */
+.entry-list { display: flex; flex-direction: column; gap: 8px; padding-bottom: 74px; }
 .entry-card {
     display: flex;
     align-items: flex-start;
@@ -295,13 +315,11 @@ body {
 .setting-row { display: flex; align-items: center; gap: 10px; margin-top: 12px; font-size: 0.9375rem; cursor: pointer; }
 .setting-row input { width: 22px; height: 22px; accent-color: var(--accent); }
 
-/* ---------- FAB ---------- */
+/* ---------- the + button, beside the search ---------- */
 .fab {
-    position: fixed;
-    right: 18px;
-    bottom: calc(var(--tab-height) + env(safe-area-inset-bottom) + 16px);
-    width: 58px;
-    height: 58px;
+    flex: none;
+    width: 48px;
+    height: 48px;
     border-radius: 50%;
     border: none;
     background: var(--accent);
@@ -309,11 +327,9 @@ body {
     display: flex;
     align-items: center;
     justify-content: center;
-    box-shadow: 0 6px 18px rgba(0, 0, 0, 0.45);
     cursor: pointer;
-    z-index: 30;
 }
-.fab .icon { width: 26px; height: 26px; }
+.fab .icon { width: 24px; height: 24px; }
 .fab:active { background: var(--accent-deep); }
 
 /* ---------- detail ---------- */
@@ -634,6 +650,9 @@ body {
     z-index: 120;
     max-width: 90vw;
     text-align: center;
+}
+body[data-screen="list"] .toast {   /* above the search bar, not on it */
+    bottom: calc(var(--tab-height) + env(safe-area-inset-bottom) + 86px);
     display: flex;
     align-items: center;
     gap: 12px;

@@ -1,9 +1,15 @@
 /* AMS TechLingo — main app logic. */
 
-const APP_VERSION = '1.27';
+const APP_VERSION = '1.28';
 
 /* Thorough per-version history, newest first — shown collapsed in the Guide. */
 const VERSION_LOG = [
+    {
+        v: '1.28', date: '13 Oct 2026',
+        items: [
+            'The search box has moved to the bottom of the Words page, in a bar just above the tabs, under your thumb — the way iOS 26 apps such as Mail and Notes do it — with the orange + button beside it. When the keyboard comes up, the bar rises with it. The sort choice (A–Z, newest, last updated) now sits at the end of the filter row.'
+        ]
+    },
     {
         v: '1.27', date: '13 Oct 2026',
         items: [
@@ -665,7 +671,7 @@ function showView(name) {
     ['list', 'detail', 'edit', 'guide', 'settings'].forEach((v) =>
         $('#view-' + v).classList.toggle('hidden', v !== name));
     $('#tab-bar').classList.toggle('hidden', name === 'edit');
-    $('#fab-add').classList.toggle('hidden', name !== 'list');
+    $('#search-dock').classList.toggle('hidden', name !== 'list');
     document.body.dataset.screen = name;   // the tests read this, after the swap
     window.scrollTo(0, 0);
     if (state.updateWaiting && name !== 'edit') {
@@ -1466,7 +1472,7 @@ function renderGuide() {
         <div class="guide-section">
             <h2>Finding words</h2>
             <ul>
-                <li><strong>Search</strong> looks through terms, all three definitions, notes and categories. A word whose <strong>name</strong> matches comes first, then words whose definition uses what you typed, then the rest. Accents do not matter (“lagg” finds “Lägg till”), and when nothing is found the page offers the closest-spelled words.</li>
+                <li><strong>Search</strong> sits in the bar at the bottom of the page, under your thumb, with the + button beside it; it looks through terms, all three definitions, notes and categories. A word whose <strong>name</strong> matches comes first, then words whose definition uses what you typed, then the rest. Accents do not matter (“lagg” finds “Lägg till”), and when nothing is found the page offers the closest-spelled words.</li>
                 <li><strong>Category chips</strong> narrow the list to one area; tap again to clear. Categories can be renamed in Settings; renaming one onto an existing name merges them.</li>
                 <li><strong>My words</strong> shows only entries you created; <strong>With photo</strong> only entries that have a picture.</li>
                 <li><strong>Sort</strong>: A–Z, newest first, or last updated.</li>
@@ -1475,7 +1481,7 @@ function renderGuide() {
         </div>
         <div class="guide-section">
             <h2>Adding & editing</h2>
-            <p>The orange <strong>+</strong> button adds a word. Cancel and Save sit at the top of the form (and at the bottom), and the top bar stays put while you scroll, so Save is always within reach. If a word with the name you type is already in the dictionary, the form says so and offers to open it. When a search finds nothing, the page offers to add that word with the name already filled in. <strong>Paste</strong> next to the word field puts in whatever you last copied — a word from Mail or Safari; the search box has the same button. Cancel asks first if you have typed something. Tapping any word opens it; <strong>Edit</strong> lets you change everything — including the words from the starter library. <strong>Delete</strong> does not ask: the word goes to Recently deleted (in Settings) and an Undo shows for a few seconds; after 30 days it is gone for good. Every entry shows when it was <strong>added</strong> and, if changed later, when it was last <strong>updated</strong>. Starring a favorite does not count as a change.</p>
+            <p>The orange <strong>+</strong> button, beside the search at the bottom, adds a word. Cancel and Save sit at the top of the form (and at the bottom), and the top bar stays put while you scroll, so Save is always within reach. If a word with the name you type is already in the dictionary, the form says so and offers to open it. When a search finds nothing, the page offers to add that word with the name already filled in. <strong>Paste</strong> next to the word field puts in whatever you last copied — a word from Mail or Safari; the search box has the same button. Cancel asks first if you have typed something. Tapping any word opens it; <strong>Edit</strong> lets you change everything — including the words from the starter library. <strong>Delete</strong> does not ask: the word goes to Recently deleted (in Settings) and an Undo shows for a few seconds; after 30 days it is gone for good. Every entry shows when it was <strong>added</strong> and, if changed later, when it was last <strong>updated</strong>. Starring a favorite does not count as a change.</p>
         </div>
         <div class="guide-section">
             <h2>Photos</h2>
@@ -1553,6 +1559,19 @@ function wire() {
     $('#recent-clear').onclick = () => { localStorage.removeItem('tl-recent'); renderRecent(); };
     $('#wotd-toggle').onchange = (ev) => { localStorage.setItem('tl-wotd', ev.target.checked ? 'on' : 'off'); };
     $('#backup-nudge-go').onclick = exportBackup;
+
+    // The search bar rises with the keyboard (the visible part of the screen shrinks; the bar follows its bottom edge).
+    const vv = window.visualViewport;
+    if (vv) {
+        const placeDock = () => {
+            const lift = Math.max(0, Math.round(window.innerHeight - vv.height - vv.offsetTop));
+            const dock = $('#search-dock');
+            dock.style.bottom = lift > 80 ? lift + 'px' : '';
+            dock.dataset.lifted = lift > 80 ? '1' : '0';
+        };
+        vv.addEventListener('resize', placeDock);
+        vv.addEventListener('scroll', placeDock);
+    }
     $('#backup-nudge-later').onclick = () => {
         localStorage.setItem('tl-backup-later', String(Date.now() + 7 * 86400000));
         renderNudge();
