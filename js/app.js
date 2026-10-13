@@ -1,9 +1,15 @@
 /* AMS TechLingo — main app logic. */
 
-const APP_VERSION = '1.12';
+const APP_VERSION = '1.13';
 
 /* Thorough per-version history, newest first — shown collapsed in the Guide. */
 const VERSION_LOG = [
+    {
+        v: '1.13', date: '13 Oct 2026',
+        items: [
+            'The app now follows the iPhone’s own text-size setting (Settings › Display &amp; Brightness › Text Size), like a native app: make the text larger or smaller there and every word, definition and button in TechLingo follows. On the Mac nothing changes.'
+        ]
+    },
     {
         v: '1.12', date: '13 Oct 2026',
         items: [
@@ -871,6 +877,10 @@ function renderGuide() {
         <div class="guide-section">
             <h2>Languages</h2>
             <p>Every word can have a definition in <strong>English, Deutsch and Svenska</strong>. The EN / DE / SV switch at the top chooses which language the list shows. If a word has no definition in that language, the list falls back to English.</p>
+        </div>
+        <div class="guide-section">
+            <h2>Text size</h2>
+            <p>The app follows the iPhone’s own text-size setting: Settings › Display &amp; Brightness › Text Size. Make the text larger there and every word, definition and button here grows with it.</p>
         </div>
         <div class="guide-section">
             <h2>Finding words</h2>
