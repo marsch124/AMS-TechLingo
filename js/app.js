@@ -1,9 +1,15 @@
 /* AMS TechLingo — main app logic. */
 
-const APP_VERSION = '1.18';
+const APP_VERSION = '1.19';
 
 /* Thorough per-version history, newest first — shown collapsed in the Guide. */
 const VERSION_LOG = [
+    {
+        v: '1.19', date: '13 Oct 2026',
+        items: [
+            'Cancel and Save now also sit at the top of the Add / Edit form, Apple-style, and that bar stays put while the form scrolls — so Save is at hand even with the keyboard up, instead of somewhere below the photos. The Cancel / Save pair at the bottom is still there.'
+        ]
+    },
     {
         v: '1.18', date: '13 Oct 2026',
         items: [
@@ -1101,7 +1107,7 @@ function renderGuide() {
         </div>
         <div class="guide-section">
             <h2>Adding & editing</h2>
-            <p>The orange <strong>+</strong> button adds a word; when a search finds nothing, the page offers to add that word with the name already filled in. <strong>Paste</strong> next to the word field puts in whatever you last copied — a word from Mail or Safari; the search box has the same button. Cancel asks first if you have typed something. Tapping any word opens it; <strong>Edit</strong> lets you change everything — including the words from the starter library. <strong>Delete</strong> does not ask: the word goes to Recently deleted (in Settings) and an Undo shows for a few seconds; after 30 days it is gone for good. Every entry shows when it was <strong>added</strong> and, if changed later, when it was last <strong>updated</strong>. Starring a favorite does not count as a change.</p>
+            <p>The orange <strong>+</strong> button adds a word. Cancel and Save sit at the top of the form (and at the bottom), and the top bar stays put while you scroll, so Save is always within reach. When a search finds nothing, the page offers to add that word with the name already filled in. <strong>Paste</strong> next to the word field puts in whatever you last copied — a word from Mail or Safari; the search box has the same button. Cancel asks first if you have typed something. Tapping any word opens it; <strong>Edit</strong> lets you change everything — including the words from the starter library. <strong>Delete</strong> does not ask: the word goes to Recently deleted (in Settings) and an Undo shows for a few seconds; after 30 days it is gone for good. Every entry shows when it was <strong>added</strong> and, if changed later, when it was last <strong>updated</strong>. Starring a favorite does not count as a change.</p>
         </div>
         <div class="guide-section">
             <h2>Photos</h2>

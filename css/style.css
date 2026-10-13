@@ -70,6 +70,19 @@ body {
     color: var(--accent);
 }
 .top-bar.sub h1 { font-size: 1.3125rem; color: var(--text); overflow-wrap: anywhere; }
+/* the edit form's bar stays put while the form scrolls, so Cancel and Save
+   are at hand with the keyboard up; it sits just under the clock */
+.edit-bar {
+    position: sticky;
+    top: env(safe-area-inset-top, 0px);
+    z-index: 20;
+    background: var(--bg);
+    margin: 0 -16px;
+    padding-left: 16px;
+    padding-right: 16px;
+}
+.edit-bar h1 { text-align: center; }
+.text-btn { font-size: 1rem; font-weight: 700; color: var(--accent); padding: 8px 6px; }
 
 .ghost-btn {
     background: none;
