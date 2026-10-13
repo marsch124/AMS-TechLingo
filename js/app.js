@@ -1,9 +1,15 @@
 /* AMS TechLingo — main app logic. */
 
-const APP_VERSION = '1.14';
+const APP_VERSION = '1.15';
 
 /* Thorough per-version history, newest first — shown collapsed in the Guide. */
 const VERSION_LOG = [
+    {
+        v: '1.15', date: '13 Oct 2026',
+        items: [
+            'Paste: one tap puts whatever you last copied — a word from Mail or Safari — into the word field when adding a word, and into the search box on the Words page. The iPhone asks once with its small Paste bubble; nothing to set up.'
+        ]
+    },
     {
         v: '1.14', date: '13 Oct 2026',
         items: [
@@ -678,6 +684,36 @@ async function deleteCurrent() {
     switchTab(state.tab === 'favorites' ? 'favorites' : 'words');
 }
 
+/* ---------- paste ---------- */
+
+/* The first line of what was last copied, or null when the phone did not allow it. */
+async function readClipboard() {
+    if (!navigator.clipboard || !navigator.clipboard.readText) return null;
+    try {
+        return (await navigator.clipboard.readText()).split('\n')[0].trim();
+    } catch {
+        return null;
+    }
+}
+
+async function pasteInto(target) {
+    const text = await readClipboard();
+    if (text === null) { toast('Paste wasn’t allowed'); return; }
+    if (!text) { toast('Nothing to paste'); return; }
+    if (target === 'term') {
+        $('#f-term').value = text;
+        $('#f-en').focus();
+        document.body.dataset.paste = 'term';
+    } else {
+        $('#search-input').value = text;
+        state.search = text;
+        $('#search-clear').classList.remove('hidden');
+        $('#search-paste').classList.add('hidden');
+        renderList();
+        document.body.dataset.paste = 'search';
+    }
+}
+
 /* ---------- read aloud ---------- */
 
 const SPEECH_LANG = { en: 'en-US', de: 'de-DE', sv: 'sv-SE' };
@@ -957,7 +993,7 @@ function renderGuide() {
         </div>
         <div class="guide-section">
             <h2>Adding & editing</h2>
-            <p>The orange <strong>+</strong> button adds a word. Cancel asks first if you have typed something. Tapping any word opens it; <strong>Edit</strong> lets you change everything — including the words from the starter library. Every entry shows when it was <strong>added</strong> and, if changed later, when it was last <strong>updated</strong>. Starring a favorite does not count as a change.</p>
+            <p>The orange <strong>+</strong> button adds a word. <strong>Paste</strong> next to the word field puts in whatever you last copied — a word from Mail or Safari; the search box has the same button. Cancel asks first if you have typed something. Tapping any word opens it; <strong>Edit</strong> lets you change everything — including the words from the starter library. Every entry shows when it was <strong>added</strong> and, if changed later, when it was last <strong>updated</strong>. Starring a favorite does not count as a change.</p>
         </div>
         <div class="guide-section">
             <h2>Photos</h2>
@@ -1013,14 +1049,18 @@ function wire() {
     $('#search-input').oninput = (e) => {
         state.search = e.target.value.trim();
         $('#search-clear').classList.toggle('hidden', !state.search);
+        $('#search-paste').classList.toggle('hidden', !!state.search);
         renderList();
     };
     $('#search-clear').onclick = () => {
         $('#search-input').value = '';
         state.search = '';
         $('#search-clear').classList.add('hidden');
+        $('#search-paste').classList.remove('hidden');
         renderList();
     };
+    $('#search-paste').onclick = () => pasteInto('search');
+    $('#f-term-paste').onclick = () => pasteInto('term');
     $('#sort-select').onchange = (e) => {
         state.sort = e.target.value;
         localStorage.setItem('tl-sort', state.sort);

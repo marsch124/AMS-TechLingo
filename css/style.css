@@ -366,6 +366,9 @@ body {
 }
 .field textarea { resize: vertical; }
 
+.input-row { display: flex; gap: 8px; align-items: stretch; }
+.input-row input { flex: 1; min-width: 0; }
+.paste-btn { padding: 0 14px; font-size: 0.875rem; white-space: nowrap; flex: none; }
 .photo-edit { display: flex; flex-direction: column; gap: 10px; }
 .photo-list { display: flex; flex-wrap: wrap; gap: 14px; padding: 8px 8px 2px 0; }
 .photo-thumb { position: relative; width: 96px; height: 96px; }
