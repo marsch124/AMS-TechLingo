@@ -1,9 +1,15 @@
 /* AMS TechLingo — main app logic. */
 
-const APP_VERSION = '1.16';
+const APP_VERSION = '1.17';
 
 /* Thorough per-version history, newest first — shown collapsed in the Guide. */
 const VERSION_LOG = [
+    {
+        v: '1.17', date: '13 Oct 2026',
+        items: [
+            'When a search finds nothing, the page now offers <strong>Add “…” as a new word</strong> — one tap opens the form with the word already filled in, so a word you looked for and did not have is one tap from being added.'
+        ]
+    },
     {
         v: '1.16', date: '13 Oct 2026',
         items: [
@@ -312,11 +318,26 @@ function renderList() {
     const empty = $('#empty-state');
     if (list.length === 0) {
         empty.classList.remove('hidden');
-        empty.textContent = state.tab === 'favorites' && !state.search
-            ? 'No favorites yet. Tap the star on any word to collect it here.'
-            : 'Nothing found. Try a different search or filter — or add the word yourself with the + button.';
+        empty.innerHTML = '';
+        if (state.search) {
+            // The word he looked for and does not have: one tap from being added.
+            const p = document.createElement('p');
+            p.textContent = 'Nothing found for “' + state.search + '”.';
+            const add = document.createElement('button');
+            add.className = 'btn primary';
+            add.dataset.testid = 'empty-add';
+            add.innerHTML = '<svg class="icon"><use href="#icon-plus"/></svg> Add “' + esc(state.search) + '” as a new word';
+            add.onclick = () => openEdit(null, { term: state.search });
+            empty.appendChild(p);
+            empty.appendChild(add);
+        } else {
+            empty.textContent = state.tab === 'favorites'
+                ? 'No favorites yet. Tap the star on any word to collect it here.'
+                : 'Nothing here yet — add the first word with the + button.';
+        }
     } else {
         empty.classList.add('hidden');
+        empty.innerHTML = '';          // no stale offer lingering out of sight
     }
 
     const frag = document.createDocumentFragment();
@@ -580,11 +601,11 @@ function categoryOptions(selected) {
     $('#f-newcat').value = '';
 }
 
-function openEdit(id) {
+function openEdit(id, { term = '' } = {}) {
     state.editId = id;
     const e = id ? state.entries.find((x) => x.id === id) : null;
     $('#edit-title').textContent = e ? 'Edit word' : 'Add word';
-    $('#f-term').value = e ? e.term : '';
+    $('#f-term').value = e ? e.term : term;   // a new word may arrive pre-filled from an empty search
     categoryOptions(e ? e.category : 'Software & Apps');
     $('#f-en').value = e ? (e.en || '') : '';
     $('#f-de').value = e ? (e.de || '') : '';
@@ -1025,7 +1046,7 @@ function renderGuide() {
         </div>
         <div class="guide-section">
             <h2>Adding & editing</h2>
-            <p>The orange <strong>+</strong> button adds a word. <strong>Paste</strong> next to the word field puts in whatever you last copied — a word from Mail or Safari; the search box has the same button. Cancel asks first if you have typed something. Tapping any word opens it; <strong>Edit</strong> lets you change everything — including the words from the starter library. Every entry shows when it was <strong>added</strong> and, if changed later, when it was last <strong>updated</strong>. Starring a favorite does not count as a change.</p>
+            <p>The orange <strong>+</strong> button adds a word; when a search finds nothing, the page offers to add that word with the name already filled in. <strong>Paste</strong> next to the word field puts in whatever you last copied — a word from Mail or Safari; the search box has the same button. Cancel asks first if you have typed something. Tapping any word opens it; <strong>Edit</strong> lets you change everything — including the words from the starter library. Every entry shows when it was <strong>added</strong> and, if changed later, when it was last <strong>updated</strong>. Starring a favorite does not count as a change.</p>
         </div>
         <div class="guide-section">
             <h2>Photos</h2>

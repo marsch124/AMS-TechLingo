@@ -226,7 +226,12 @@ body {
     color: var(--text-muted);
     padding: 48px 24px;
     font-size: 0.9375rem;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 16px;
 }
+.empty-state .btn { max-width: 100%; overflow-wrap: anywhere; }
 
 /* ---------- FAB ---------- */
 .fab {
