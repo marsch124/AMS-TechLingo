@@ -1,9 +1,15 @@
 /* AMS TechLingo — main app logic. */
 
-const APP_VERSION = '1.29';
+const APP_VERSION = '1.30';
 
 /* Thorough per-version history, newest first — shown collapsed in the Guide. */
 const VERSION_LOG = [
+    {
+        v: '1.30', date: '13 Oct 2026',
+        items: [
+            'Screens now slide into place: a word’s page slides in from the right, and slides back out when you return — a small, quick movement, the way native apps do it. If the iPhone is set to reduce motion, there is no movement.'
+        ]
+    },
     {
         v: '1.29', date: '13 Oct 2026',
         items: [
@@ -669,22 +675,41 @@ async function toggleFavorite(id) {
 /* Where the list was scrolled to when a word was opened — so Back lands there. */
 const scrollMemory = { list: 0, listTab: null };
 
-function showView(name) {
+/* Which way a screen change moves: a word opens to the right, Back comes from the left. */
+function navDirection(from, to) {
+    if (!from || from === to) return 'none';
+    const forward = { list: ['detail', 'edit'], detail: ['edit'] };
+    if ((forward[from] || []).includes(to)) return 'forward';
+    const back = { detail: ['list'], edit: ['detail', 'list'] };
+    if ((back[from] || []).includes(to)) return 'back';
+    return 'fade';
+}
+
+function showView(name, after) {
     const leaving = document.body.dataset.screen;
     if (leaving === 'list') { scrollMemory.list = window.scrollY; scrollMemory.listTab = state.tab; }
     if (leaving === 'detail' && name !== 'detail') { freePictures('detail'); stopReading(); closeLightbox(); }
     if (leaving === 'edit') freePictures('thumbs');
-    ['list', 'detail', 'edit', 'guide', 'settings'].forEach((v) =>
-        $('#view-' + v).classList.toggle('hidden', v !== name));
-    $('#tab-bar').classList.toggle('hidden', name === 'edit');
-    $('#search-dock').classList.toggle('hidden', name !== 'list');
-    document.body.dataset.screen = name;   // the tests read this, after the swap
-    window.scrollTo(0, 0);
-    if (state.updateWaiting && name !== 'edit') {
-        // A new version arrived while he was typing; the form is closed now.
-        state.updateWaiting = false;
-        window.location.reload();
-    }
+    const swap = () => {
+        ['list', 'detail', 'edit', 'guide', 'settings'].forEach((v) =>
+            $('#view-' + v).classList.toggle('hidden', v !== name));
+        $('#tab-bar').classList.toggle('hidden', name === 'edit');
+        $('#search-dock').classList.toggle('hidden', name !== 'list');
+        document.body.dataset.screen = name;   // the tests read this, after the swap
+        window.scrollTo(0, 0);
+        if (after) after();
+        if (state.updateWaiting && name !== 'edit') {
+            // A new version arrived while he was typing; the form is closed now.
+            state.updateWaiting = false;
+            window.location.reload();
+        }
+    };
+    const dir = navDirection(leaving, name);
+    document.documentElement.dataset.nav = dir;
+    const animate = dir !== 'none' && typeof document.startViewTransition === 'function' &&
+        !window.matchMedia('(prefers-reduced-motion: reduce)').matches && !document.hidden;
+    if (animate) document.startViewTransition(swap);   // the swap happens inside the slide
+    else swap();
 }
 
 /* Full screen: all of the word's photos in a strip, opened at the one tapped. */
@@ -740,12 +765,13 @@ function switchTab(tab) {
         b.classList.toggle('active', b.dataset.tab === tab));
     const cameFrom = document.body.dataset.screen;
     if (tab === 'words' || tab === 'favorites') {
-        showView('list');
-        renderList();
-        // Back from a word lands where the list was, not at the top.
-        if ((cameFrom === 'detail' || cameFrom === 'edit') && scrollMemory.listTab === tab) {
-            window.scrollTo(0, scrollMemory.list);
-        }
+        showView('list', () => {
+            renderList();
+            // Back from a word lands where the list was, not at the top.
+            if ((cameFrom === 'detail' || cameFrom === 'edit') && scrollMemory.listTab === tab) {
+                window.scrollTo(0, scrollMemory.list);
+            }
+        });
     } else if (tab === 'guide') {
         showView('guide');
     } else {

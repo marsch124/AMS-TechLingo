@@ -576,6 +576,19 @@ body {
 .tab-bar button.active { color: var(--accent); }
 .tab-bar button.active .icon { color: var(--accent); }
 
+/* ---------- the slide between screens ---------- */
+@media (prefers-reduced-motion: no-preference) {
+    ::view-transition-old(root),
+    ::view-transition-new(root) { animation-duration: 0.2s; animation-timing-function: ease-out; }
+    html[data-nav="forward"]::view-transition-new(root) { animation-name: slide-from-right; }
+    html[data-nav="back"]::view-transition-new(root) { animation-name: slide-from-left; }
+    html[data-nav="forward"]::view-transition-old(root),
+    html[data-nav="back"]::view-transition-old(root) { animation-name: fade-away; }
+}
+@keyframes slide-from-right { from { opacity: 0; transform: translateX(32px); } }
+@keyframes slide-from-left { from { opacity: 0; transform: translateX(-32px); } }
+@keyframes fade-away { to { opacity: 0; } }
+
 /* ---------- lightbox ---------- */
 /* full-screen photos: a strip you swipe sideways, "2 of 3" and a close button on top */
 .lightbox {
