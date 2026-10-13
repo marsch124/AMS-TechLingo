@@ -1,9 +1,15 @@
 /* AMS TechLingo — main app logic. */
 
-const APP_VERSION = '1.13';
+const APP_VERSION = '1.14';
 
 /* Thorough per-version history, newest first — shown collapsed in the Guide. */
 const VERSION_LOG = [
+    {
+        v: '1.14', date: '13 Oct 2026',
+        items: [
+            'Listen: a new button under the definition reads the word and its definition aloud with the iPhone’s own voice, in the language the switch is on (or the one the word has). Tap again to stop. For nicer Swedish or German voices, the phone can download them under Settings › Accessibility › Spoken Content › Voices.'
+        ]
+    },
     {
         v: '1.13', date: '13 Oct 2026',
         items: [
@@ -356,7 +362,7 @@ const scrollMemory = { list: 0, listTab: null };
 function showView(name) {
     const leaving = document.body.dataset.screen;
     if (leaving === 'list') { scrollMemory.list = window.scrollY; scrollMemory.listTab = state.tab; }
-    if (leaving === 'detail' && name !== 'detail') freePictures('detail');
+    if (leaving === 'detail' && name !== 'detail') { freePictures('detail'); stopReading(); }
     if (leaving === 'edit') freePictures('thumbs');
     ['list', 'detail', 'edit', 'guide', 'settings'].forEach((v) =>
         $('#view-' + v).classList.toggle('hidden', v !== name));
@@ -483,6 +489,15 @@ function openDetail(id) {
     });
     if (!any) defsHtml += '<p class="muted">No definition yet — tap Edit to write one.</p>';
     defs.innerHTML = defsHtml;
+    if (any) {
+        const listen = document.createElement('button');
+        listen.className = 'btn secondary listen-btn';
+        listen.id = 'detail-listen';
+        listen.dataset.testid = 'detail-listen';
+        listen.innerHTML = '<svg class="icon"><use href="#icon-speaker"/></svg> <span>Listen</span>';
+        listen.onclick = readAloud;
+        defs.appendChild(listen);
+    }
     body.appendChild(defs);
 
     if (e.notes) {
@@ -661,6 +676,55 @@ async function deleteCurrent() {
     state.entries = state.entries.filter((x) => x.id !== e.id);
     toast('Deleted "' + e.term + '"');
     switchTab(state.tab === 'favorites' ? 'favorites' : 'words');
+}
+
+/* ---------- read aloud ---------- */
+
+const SPEECH_LANG = { en: 'en-US', de: 'de-DE', sv: 'sv-SE' };
+let speakingNow = null;   // kept in a variable on purpose: iOS drops an utterance it no longer holds
+
+function canSpeak() {
+    return 'speechSynthesis' in window && 'SpeechSynthesisUtterance' in window;
+}
+
+/* The phone's voice for a language, if it has one; otherwise the phone picks. */
+function voiceFor(tag) {
+    const voices = speechSynthesis.getVoices() || [];
+    const lang = tag.toLowerCase();
+    return voices.find((v) => v.lang.toLowerCase() === lang) ||
+           voices.find((v) => v.lang.toLowerCase().startsWith(lang.slice(0, 2))) || null;
+}
+
+function setSpeechState(s) {
+    document.body.dataset.speech = s;
+    const btn = $('#detail-listen');
+    if (btn) btn.querySelector('span').textContent = s === 'speaking' ? 'Stop' : 'Listen';
+}
+
+function stopReading() {
+    if (canSpeak() && (speechSynthesis.speaking || speechSynthesis.pending)) speechSynthesis.cancel();
+    if (document.body.dataset.speech === 'speaking') setSpeechState('stopped');
+}
+
+/* Reads the word and its definition in the language the switch is on — or, if the
+   word has no definition in that language, in the first one it does have. */
+function readAloud() {
+    const e = state.entries.find((x) => x.id === state.detailId);
+    if (!e) return;
+    if (!canSpeak()) { toast('Reading aloud is not available in this browser'); return; }
+    if (document.body.dataset.speech === 'speaking') { stopReading(); return; }   // tapped again: stop
+    const lang = e[state.lang] ? state.lang : (['en', 'de', 'sv'].find((l) => e[l]) || 'en');
+    const u = new SpeechSynthesisUtterance(e.term + '. ' + (e[lang] || ''));
+    u.lang = SPEECH_LANG[lang];
+    const voice = voiceFor(u.lang);
+    if (voice) u.voice = voice;
+    u.rate = 0.95;
+    u.onend = () => setSpeechState('done');
+    u.onerror = () => setSpeechState('failed');
+    speakingNow = u;
+    speechSynthesis.cancel();
+    setSpeechState('speaking');
+    speechSynthesis.speak(u);
 }
 
 /* ---------- share ---------- */
@@ -898,6 +962,10 @@ function renderGuide() {
         <div class="guide-section">
             <h2>Photos</h2>
             <p>Each word can carry <strong>any number of photos or screenshots</strong> — added from the camera or photo library in the edit screen, several at once if you like. Each one shows there as a small thumbnail with a red × to take it away again. Photos are shrunk automatically so the app stays small. On the word’s page they sit in a strip you swipe sideways, one at a time, with dots under it showing where you are — and the definition right under that. Tapping a photo shows it full-screen.</p>
+        </div>
+        <div class="guide-section">
+            <h2>Listening</h2>
+            <p>Tap <strong>Listen</strong> under a definition and the iPhone reads the word and its definition aloud, in the language the switch is on (or the one the word has). Tap again to stop. The voices are the phone’s own; nicer Swedish or German voices can be downloaded under Settings › Accessibility › Spoken Content › Voices.</p>
         </div>
         <div class="guide-section">
             <h2>Sharing a word</h2>
