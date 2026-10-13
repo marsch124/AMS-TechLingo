@@ -1,9 +1,15 @@
 /* AMS TechLingo — main app logic. */
 
-const APP_VERSION = '1.23';
+const APP_VERSION = '1.24';
 
 /* Thorough per-version history, newest first — shown collapsed in the Guide. */
 const VERSION_LOG = [
+    {
+        v: '1.24', date: '13 Oct 2026',
+        items: [
+            'Word of the day: a small card at the top of the Words page shows one of your own words each day, with the first line of its definition — tap it to open the word. It changes once a day, never in the middle of one. Settings has a switch to hide it.'
+        ]
+    },
     {
         v: '1.23', date: '13 Oct 2026',
         items: [
@@ -381,6 +387,32 @@ function renderCategoryChips() {
     });
 }
 
+/* One of his own words, chosen by the date — the same all day, a new one tomorrow.
+   (With no own words yet, one of the starter words.) */
+function wordOfTheDay() {
+    const live = state.entries.filter(alive);
+    let pool = live.filter((e) => e.source === 'own');
+    if (!pool.length) pool = live;
+    if (!pool.length) return null;
+    pool = [...pool].sort((a, b) => a.id.localeCompare(b.id));
+    const day = Math.floor((Date.now() - new Date().getTimezoneOffset() * 60000) / 86400000);
+    return pool[day % pool.length];
+}
+function wotdWanted() { return localStorage.getItem('tl-wotd') !== 'off'; }
+function renderWotd() {
+    const box = $('#wotd');
+    const plain = state.tab === 'words' && !state.search && !state.category && !state.onlyMine && !state.onlyPhotos;
+    const e = plain && wotdWanted() ? wordOfTheDay() : null;
+    box.classList.toggle('hidden', !e);
+    box.innerHTML = '';
+    if (!e) { delete box.dataset.id; return; }
+    box.dataset.id = e.id;
+    box.innerHTML = '<div class="wotd-label">Word of the day</div>' +
+        '<div class="wotd-term">' + esc(e.term) + '</div>' +
+        '<div class="wotd-def">' + esc(defFor(e, state.lang) || '—') + '</div>';
+    box.onclick = () => openDetail(e.id);
+}
+
 /* The last eight words opened, newest first. Kept on this device only. */
 const RECENT_MAX = 8;
 function recentIds() {
@@ -413,6 +445,7 @@ function renderRecent() {
 function renderList() {
     renderCategoryChips();
     renderRecent();
+    renderWotd();
     $('#chip-mine').classList.toggle('active', state.onlyMine);
     $('#chip-photos').classList.toggle('active', state.onlyPhotos);
     $('#list-title').textContent = state.tab === 'favorites' ? 'Favorites' : 'TechLingo';
@@ -1260,6 +1293,7 @@ function renderSettings() {
         binList.appendChild(row);
     });
     $('#bin-card').classList.toggle('hidden', bin.length === 0);
+    $('#wotd-toggle').checked = wotdWanted();
     $('#stats-line').textContent =
         total + ' words · ' + own + ' of your own · ' + favs + ' favorites · ' + photos + ' photos';
     $('#version-label').textContent = APP_VERSION;
@@ -1296,6 +1330,10 @@ function renderGuide() {
         <div class="guide-section">
             <h2>Photos</h2>
             <p>Each word can carry <strong>any number of photos or screenshots</strong> — added from the camera or photo library in the edit screen, several at once if you like. Each one shows there as a small thumbnail with a red × to take it away again. Photos are shrunk automatically so the app stays small. On the word’s page they sit in a strip you swipe sideways, one at a time, with dots under it showing where you are — and the definition right under that. Tapping a photo shows it full-screen.</p>
+        </div>
+        <div class="guide-section">
+            <h2>Word of the day</h2>
+            <p>At the top of the Words page a small card shows one of your own words each day with the first line of its definition; tap it to open the word. It changes once a day. Settings has a switch to hide the card.</p>
         </div>
         <div class="guide-section">
             <h2>See also</h2>
@@ -1363,6 +1401,7 @@ function wire() {
     };
     $('#search-paste').onclick = () => pasteInto('search');
     $('#recent-clear').onclick = () => { localStorage.removeItem('tl-recent'); renderRecent(); };
+    $('#wotd-toggle').onchange = (ev) => { localStorage.setItem('tl-wotd', ev.target.checked ? 'on' : 'off'); };
     $('#f-term-paste').onclick = () => pasteInto('term');
     $('#f-term').oninput = updateDupHint;
     $('#dup-open').onclick = async () => {
