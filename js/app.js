@@ -1,9 +1,15 @@
 /* AMS TechLingo — main app logic. */
 
-const APP_VERSION = '1.24';
+const APP_VERSION = '1.25';
 
 /* Thorough per-version history, newest first — shown collapsed in the Guide. */
 const VERSION_LOG = [
+    {
+        v: '1.25', date: '13 Oct 2026',
+        items: [
+            'Categories can be renamed: Settings lists them with their word counts and a Rename button. Renaming a category to one that already exists merges the two (it asks first). And a new category typed in the edit form that only differs in capitals from an existing one — “ai” next to “AI” — now joins the existing one instead of becoming a second category.'
+        ]
+    },
     {
         v: '1.24', date: '13 Oct 2026',
         items: [
@@ -240,24 +246,65 @@ function toast(msg, { action = '', onAction = null, ms = 2600 } = {}) {
 /* A deleted word is kept, marked, for 30 days — so Delete is never final at once. */
 const alive = (e) => !e.deletedAt;
 
-function confirmDialog(title, text, { danger = false, okLabel = 'OK', kind = '' } = {}) {
+/* A question with OK / Cancel — or, with `input`, a question that wants a typed
+   answer (resolves with the text, or null on Cancel). */
+function confirmDialog(title, text, { danger = false, okLabel = 'OK', kind = '', input } = {}) {
     return new Promise((resolve) => {
         $('#confirm-overlay').dataset.kind = kind;   // which question this is — the tests read it
         $('#confirm-title').textContent = title;
         $('#confirm-text').textContent = text;
         $('#confirm-yes').textContent = okLabel;
+        const field = $('#confirm-input');
+        const asks = input !== undefined;
+        field.classList.toggle('hidden', !asks);
+        if (asks) field.value = input;
         const box = document.querySelector('.confirm-box');
         box.classList.toggle('danger', danger);
         $('#confirm-overlay').classList.remove('hidden');
+        if (asks) { field.focus(); field.select(); }
         const done = (val) => {
             $('#confirm-overlay').classList.add('hidden');
             $('#confirm-yes').onclick = null;
             $('#confirm-no').onclick = null;
+            field.onkeydown = null;
             resolve(val);
         };
-        $('#confirm-yes').onclick = () => done(true);
-        $('#confirm-no').onclick = () => done(false);
+        $('#confirm-yes').onclick = () => done(asks ? field.value : true);
+        $('#confirm-no').onclick = () => done(asks ? null : false);
+        if (asks) field.onkeydown = (ev) => { if (ev.key === 'Enter') { ev.preventDefault(); done(field.value); } };
     });
+}
+
+/* The categories in use, with the spelling they have. */
+function categoryNames() {
+    return [...new Set(state.entries.filter(alive).map((e) => e.category).filter(Boolean))].sort();
+}
+/* The existing spelling of a category typed in any capitals — or the text as typed. */
+function matchCategory(name) {
+    const n = name.trim().toLowerCase();
+    return categoryNames().find((c) => c.toLowerCase() === n) || name.trim();
+}
+
+/* Rename a category for every word in it; renaming onto an existing one merges them. */
+async function renameCategory(from) {
+    const typed = await confirmDialog('Rename “' + from + '”', 'The new name for this category:', { okLabel: 'Rename', kind: 'rename-category', input: from });
+    if (typed === null) return;
+    const to = typed.trim();
+    if (!to) { toast('A category needs a name'); return; }
+    if (to === from) return;
+    const target = matchCategory(to);
+    const words = state.entries.filter((e) => e.category === from);
+    if (target !== from && categoryNames().includes(target)) {
+        const ok = await confirmDialog('Merge into “' + target + '”?',
+            words.length + (words.length === 1 ? ' word moves' : ' words move') + ' from “' + from + '” into “' + target + '”.',
+            { okLabel: 'Merge', kind: 'merge-category' });
+        if (!ok) return;
+    }
+    words.forEach((e) => { e.category = target; });
+    await TL_DB.putEntries(words);
+    if (state.category === from) state.category = target;
+    renderSettings();
+    toast('“' + from + '” is now “' + target + '”');
 }
 
 /* ---------- seeding ---------- */
@@ -923,6 +970,7 @@ async function saveEdit(ev) {
     if (category === '__new__') {
         category = $('#f-newcat').value.trim();
         if (!category) { toast('Please name the new category'); $('#f-newcat').focus(); return; }
+        category = matchCategory(category);        // "ai" joins "AI" rather than becoming a second category
     }
     const dup = sameName(term, state.editId);
     if (dup) {
@@ -1294,6 +1342,20 @@ function renderSettings() {
     });
     $('#bin-card').classList.toggle('hidden', bin.length === 0);
     $('#wotd-toggle').checked = wotdWanted();
+    const catList = $('#cat-list');
+    catList.innerHTML = '';
+    categoryNames().forEach((c) => {
+        const n = live.filter((e) => e.category === c).length;
+        const row = document.createElement('div');
+        row.className = 'cat-row';
+        row.dataset.testid = 'cat-row';
+        row.dataset.cat = c;
+        row.dataset.count = String(n);
+        row.innerHTML = '<div class="grow">' + esc(c) + '<div class="cat-count">' + n + (n === 1 ? ' word' : ' words') + '</div></div>' +
+            '<button type="button" class="btn secondary small" data-testid="cat-rename">Rename</button>';
+        row.querySelector('button').onclick = () => renameCategory(c);
+        catList.appendChild(row);
+    });
     $('#stats-line').textContent =
         total + ' words · ' + own + ' of your own · ' + favs + ' favorites · ' + photos + ' photos';
     $('#version-label').textContent = APP_VERSION;
@@ -1317,7 +1379,7 @@ function renderGuide() {
             <h2>Finding words</h2>
             <ul>
                 <li><strong>Search</strong> looks through terms, all three definitions, notes and categories. A word whose <strong>name</strong> matches comes first, then words whose definition uses what you typed, then the rest. Accents do not matter (“lagg” finds “Lägg till”), and when nothing is found the page offers the closest-spelled words.</li>
-                <li><strong>Category chips</strong> narrow the list to one area; tap again to clear.</li>
+                <li><strong>Category chips</strong> narrow the list to one area; tap again to clear. Categories can be renamed in Settings; renaming one onto an existing name merges them.</li>
                 <li><strong>My words</strong> shows only entries you created; <strong>With photo</strong> only entries that have a picture.</li>
                 <li><strong>Sort</strong>: A–Z, newest first, or last updated.</li>
                 <li><strong>Recent</strong>: the last eight words you opened, newest first, one tap from opening again; “clear” empties the row.</li>

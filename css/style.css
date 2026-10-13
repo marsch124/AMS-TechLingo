@@ -582,6 +582,22 @@ body {
 }
 .confirm-box h2 { font-size: 1.125rem; margin-bottom: 8px; }
 .confirm-box p { color: var(--text-muted); font-size: 0.9375rem; white-space: pre-line; }
+#confirm-input {
+    width: 100%;
+    margin-top: 14px;
+    background: var(--bg-raised);
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    color: var(--text);
+    font-size: max(1rem, 16px);
+    font-family: inherit;
+    padding: 12px;
+    outline: none;
+}
+#confirm-input:focus { border-color: var(--accent); }
+.cat-row { display: flex; align-items: center; gap: 10px; padding: 9px 0; border-top: 1px solid var(--line); }
+.cat-row .grow { overflow-wrap: anywhere; }
+.cat-count { font-size: 0.8125rem; color: var(--text-muted); }
 .confirm-actions { display: flex; gap: 10px; margin-top: 18px; }
 .confirm-actions .btn { flex: 1; }
 .confirm-box.danger #confirm-yes { background: var(--danger); color: #2b0a06; }
