@@ -397,6 +397,8 @@ body {
 }
 .field textarea { resize: vertical; }
 
+.dup-hint { font-size: 0.875rem; color: var(--accent); margin-top: 2px; }
+.link-btn { background: none; border: none; color: var(--accent); font: inherit; font-weight: 800; text-decoration: underline; padding: 4px 2px; cursor: pointer; }
 .input-row { display: flex; gap: 8px; align-items: stretch; }
 .input-row input { flex: 1; min-width: 0; }
 .paste-btn { padding: 0 14px; font-size: 0.875rem; white-space: nowrap; flex: none; }

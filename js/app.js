@@ -1,9 +1,15 @@
 /* AMS TechLingo — main app logic. */
 
-const APP_VERSION = '1.19';
+const APP_VERSION = '1.20';
 
 /* Thorough per-version history, newest first — shown collapsed in the Guide. */
 const VERSION_LOG = [
+    {
+        v: '1.20', date: '13 Oct 2026',
+        items: [
+            'No more doubles: while you type a word’s name, the form says when a word with that name is already in the dictionary and offers to open it. Saving under an existing name asks the same — open the existing word, or go back and change the name.'
+        ]
+    },
     {
         v: '1.19', date: '13 Oct 2026',
         items: [
@@ -163,6 +169,7 @@ const state = {
     editId: null,            // null = adding new
     updateWaiting: false,    // a new version arrived while the edit form was open
     editSnapshot: '',        // the form as it was opened, to know whether Cancel throws anything away
+    editSnapshotRest: '',    // the same without the name — "Open it" under a typed name asks only if more was typed
     editPhotos: [],          // the photos as they stand in the edit form
     photosTouched: false     // did he add or remove one? (only then does it count as a change)
 };
@@ -630,6 +637,7 @@ function openEdit(id, { term = '' } = {}) {
     const e = id ? state.entries.find((x) => x.id === id) : null;
     $('#edit-title').textContent = e ? 'Edit word' : 'Add word';
     $('#f-term').value = e ? e.term : term;   // a new word may arrive pre-filled from an empty search
+    $('#dup-hint').classList.add('hidden');
     categoryOptions(e ? e.category : 'Software & Apps');
     $('#f-en').value = e ? (e.en || '') : '';
     $('#f-de').value = e ? (e.de || '') : '';
@@ -640,12 +648,31 @@ function openEdit(id, { term = '' } = {}) {
     renderPhotoThumbs();
     $('#f-photo').value = '';
     state.editSnapshot = formSnapshot();   // what the form looked like before he touched it
+    state.editSnapshotRest = formSnapshot(false);   // the same, name left out
+    updateDupHint();
     showView('edit');
 }
 
+/* Names compared the way a person reads them: case and stray spaces do not count. */
+function sameName(term, exceptId) {
+    const norm = (s) => String(s || '').trim().toLowerCase().replace(/\s+/g, ' ');
+    const t = norm(term);
+    if (!t) return null;
+    return state.entries.filter(alive).find((e) => e.id !== exceptId && norm(e.term) === t) || null;
+}
+
+/* Under the word field: "already in your dictionary — Open it", live as he types. */
+function updateDupHint() {
+    const dup = sameName($('#f-term').value, state.editId);
+    const hint = $('#dup-hint');
+    hint.classList.toggle('hidden', !dup);
+    hint.dataset.id = dup ? dup.id : '';
+    if (dup) $('#dup-text').textContent = '“' + dup.term + '” is already in your dictionary.';
+}
+
 /* The form's text as one string — compared on Cancel to know whether anything was typed. */
-function formSnapshot() {
-    return JSON.stringify([$('#f-term').value, $('#f-category').value, $('#f-newcat').value,
+function formSnapshot(withName = true) {
+    return JSON.stringify([withName ? $('#f-term').value : '', $('#f-category').value, $('#f-newcat').value,
         $('#f-en').value, $('#f-de').value, $('#f-sv').value, $('#f-notes').value]);
 }
 
@@ -715,6 +742,14 @@ async function saveEdit(ev) {
     if (category === '__new__') {
         category = $('#f-newcat').value.trim();
         if (!category) { toast('Please name the new category'); $('#f-newcat').focus(); return; }
+    }
+    const dup = sameName(term, state.editId);
+    if (dup) {
+        const open = await confirmDialog('“' + dup.term + '” is already here',
+            'You already have a word called ' + dup.term + '. Open it instead, or go back and change the name.',
+            { okLabel: 'Open it', kind: 'duplicate' });
+        if (open) openDetail(dup.id);
+        return;
     }
     const now = new Date().toISOString();
     const existing = state.editId ? state.entries.find((x) => x.id === state.editId) : null;
@@ -1107,7 +1142,7 @@ function renderGuide() {
         </div>
         <div class="guide-section">
             <h2>Adding & editing</h2>
-            <p>The orange <strong>+</strong> button adds a word. Cancel and Save sit at the top of the form (and at the bottom), and the top bar stays put while you scroll, so Save is always within reach. When a search finds nothing, the page offers to add that word with the name already filled in. <strong>Paste</strong> next to the word field puts in whatever you last copied — a word from Mail or Safari; the search box has the same button. Cancel asks first if you have typed something. Tapping any word opens it; <strong>Edit</strong> lets you change everything — including the words from the starter library. <strong>Delete</strong> does not ask: the word goes to Recently deleted (in Settings) and an Undo shows for a few seconds; after 30 days it is gone for good. Every entry shows when it was <strong>added</strong> and, if changed later, when it was last <strong>updated</strong>. Starring a favorite does not count as a change.</p>
+            <p>The orange <strong>+</strong> button adds a word. Cancel and Save sit at the top of the form (and at the bottom), and the top bar stays put while you scroll, so Save is always within reach. If a word with the name you type is already in the dictionary, the form says so and offers to open it. When a search finds nothing, the page offers to add that word with the name already filled in. <strong>Paste</strong> next to the word field puts in whatever you last copied — a word from Mail or Safari; the search box has the same button. Cancel asks first if you have typed something. Tapping any word opens it; <strong>Edit</strong> lets you change everything — including the words from the starter library. <strong>Delete</strong> does not ask: the word goes to Recently deleted (in Settings) and an Undo shows for a few seconds; after 30 days it is gone for good. Every entry shows when it was <strong>added</strong> and, if changed later, when it was last <strong>updated</strong>. Starring a favorite does not count as a change.</p>
         </div>
         <div class="guide-section">
             <h2>Photos</h2>
@@ -1175,6 +1210,18 @@ function wire() {
     };
     $('#search-paste').onclick = () => pasteInto('search');
     $('#f-term-paste').onclick = () => pasteInto('term');
+    $('#f-term').oninput = updateDupHint;
+    $('#dup-open').onclick = async () => {
+        const id = $('#dup-hint').dataset.id;
+        if (!id) return;
+        // Only the name has been typed so far? Then just go. Otherwise ask, as Cancel would.
+        const onlyName = formSnapshot(false) === state.editSnapshotRest && !state.photosTouched;
+        if (!onlyName) {
+            const ok = await confirmDialog('Throw away what you typed?', 'The changes to this word will be lost.', { danger: true, okLabel: 'Throw away' });
+            if (!ok) return;
+        }
+        openDetail(id);
+    };
     $('#sort-select').onchange = (e) => {
         state.sort = e.target.value;
         localStorage.setItem('tl-sort', state.sort);
