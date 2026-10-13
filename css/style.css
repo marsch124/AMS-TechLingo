@@ -256,6 +256,21 @@ body {
 .see-also-row .chip { color: var(--text); }
 .suggest-row .chip { color: var(--text); }
 
+/* a quiet line asking for a backup when it has been a while */
+.nudge {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    background: var(--bg-card);
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    padding: 10px 12px;
+    margin: 2px 0 12px;
+    font-size: 0.875rem;
+    color: var(--text-muted);
+}
+.nudge .link-btn { text-decoration: none; color: var(--text-muted); font-weight: 600; }
+
 /* ---------- word of the day ---------- */
 .wotd {
     background: var(--accent-soft);

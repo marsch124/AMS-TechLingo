@@ -1,9 +1,16 @@
 /* AMS TechLingo — main app logic. */
 
-const APP_VERSION = '1.26';
+const APP_VERSION = '1.27';
 
 /* Thorough per-version history, newest first — shown collapsed in the Guide. */
 const VERSION_LOG = [
+    {
+        v: '1.27', date: '13 Oct 2026',
+        items: [
+            'Settings now shows when you last made a backup, and the Words page asks quietly for one when it has been more than a month (or there is none yet and you have added words) — with a Back up button right there, and Later to be left alone for a week.',
+            'Importing a backup now offers <strong>Add missing</strong> next to Replace: only the words that are not on this device are added, and a word that is on both keeps whichever version was changed last — so the iPhone and the Mac can finally be combined.'
+        ]
+    },
     {
         v: '1.26', date: '13 Oct 2026',
         items: [
@@ -254,12 +261,15 @@ const alive = (e) => !e.deletedAt;
 
 /* A question with OK / Cancel — or, with `input`, a question that wants a typed
    answer (resolves with the text, or null on Cancel). */
-function confirmDialog(title, text, { danger = false, okLabel = 'OK', kind = '', input } = {}) {
+function confirmDialog(title, text, { danger = false, okLabel = 'OK', kind = '', input, altLabel = '' } = {}) {
     return new Promise((resolve) => {
         $('#confirm-overlay').dataset.kind = kind;   // which question this is — the tests read it
         $('#confirm-title').textContent = title;
         $('#confirm-text').textContent = text;
         $('#confirm-yes').textContent = okLabel;
+        const alt = $('#confirm-alt');
+        alt.classList.toggle('hidden', !altLabel);
+        alt.textContent = altLabel || '';
         const field = $('#confirm-input');
         const asks = input !== undefined;
         field.classList.toggle('hidden', !asks);
@@ -272,11 +282,13 @@ function confirmDialog(title, text, { danger = false, okLabel = 'OK', kind = '',
             $('#confirm-overlay').classList.add('hidden');
             $('#confirm-yes').onclick = null;
             $('#confirm-no').onclick = null;
+            alt.onclick = null;
             field.onkeydown = null;
             resolve(val);
         };
         $('#confirm-yes').onclick = () => done(asks ? field.value : true);
         $('#confirm-no').onclick = () => done(asks ? null : false);
+        alt.onclick = () => done('alt');
         if (asks) field.onkeydown = (ev) => { if (ev.key === 'Enter') { ev.preventDefault(); done(field.value); } };
     });
 }
@@ -440,6 +452,35 @@ function renderCategoryChips() {
     });
 }
 
+/* When the last backup was made — shown in Settings, and asked for quietly after a month. */
+async function noteBackup() {
+    state.lastBackupAt = new Date().toISOString();
+    await TL_DB.setMeta('lastBackupAt', state.lastBackupAt);
+    renderBackupWhen();
+}
+function renderBackupWhen() {
+    const el = $('#backup-when');
+    const at = state.lastBackupAt;
+    el.dataset.at = at || '';
+    el.textContent = at ? 'Last backup: ' + fmtDate(at) + ' (' + daysAgo(at) + ')' : 'No backup made yet.';
+}
+function backupDue() {
+    const at = state.lastBackupAt;
+    const own = state.entries.filter((e) => alive(e) && e.source === 'own').length;
+    if (!at) return own >= 5;
+    return Date.now() - new Date(at).getTime() > 30 * 86400000;
+}
+function renderNudge() {
+    const box = $('#backup-nudge');
+    const snoozed = Number(localStorage.getItem('tl-backup-later') || 0) > Date.now();
+    const show = state.tab === 'words' && !state.search && backupDue() && !snoozed;
+    box.classList.toggle('hidden', !show);
+    if (!show) return;
+    $('#backup-nudge-text').textContent = state.lastBackupAt
+        ? 'It has been ' + daysAgo(state.lastBackupAt).replace(' ago', '') + ' since your last backup.'
+        : 'Your own words have no backup yet.';
+}
+
 /* One of his own words, chosen by the date — the same all day, a new one tomorrow.
    (With no own words yet, one of the starter words.) */
 function wordOfTheDay() {
@@ -499,6 +540,7 @@ function renderList() {
     renderCategoryChips();
     renderRecent();
     renderWotd();
+    renderNudge();
     $('#chip-mine').classList.toggle('active', state.onlyMine);
     $('#chip-photos').classList.toggle('active', state.onlyPhotos);
     $('#list-title').textContent = state.tab === 'favorites' ? 'Favorites' : 'TechLingo';
@@ -1281,6 +1323,7 @@ async function exportBackup() {
     if (navigator.canShare && navigator.canShare({ files: [file] })) {
         try {
             await navigator.share({ files: [file], title: 'AMS TechLingo backup' });
+            await noteBackup();
             toast('Backup saved — ' + out.length + ' words');
         } catch (err) {
             toast(err && err.name === 'AbortError'
@@ -1297,6 +1340,7 @@ async function exportBackup() {
         a.click();
         a.remove();
         setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+        await noteBackup();
         toast('Backup saved — ' + out.length + ' words');
     } catch (err) {
         toast('Could not save the backup');
@@ -1320,19 +1364,34 @@ async function importBackup(file) {
     const photoList = (e) => (Array.isArray(e.photos) ? e.photos : (e.photo ? [e.photo] : []));
     const withPhotos = payload.entries.filter((e) => photoList(e).length).length;
     const photoCount = payload.entries.reduce((s, e) => s + photoList(e).length, 0);
-    const current = state.entries.length;
-    const ok = await confirmDialog('Replace everything?',
+    const current = state.entries.filter(alive).length;
+    const choice = await confirmDialog('Restore this backup?',
         'The backup contains ' + n + ' words (' + photoCount + ' photos on ' + withPhotos + ' of them), exported on ' +
-        fmtDate(payload.exportedAt) + '.\n\nImporting REPLACES the ' + current +
-        ' words currently on this device.',
-        { danger: true, okLabel: 'Replace', kind: 'import-preview' });
-    if (!ok) return;
+        fmtDate(payload.exportedAt) + '.\n\nAdd missing keeps the ' + current +
+        ' words on this device and adds the ones that are not here. Replace throws the ' + current + ' away for the backup.',
+        { danger: true, okLabel: 'Replace', altLabel: 'Add missing', kind: 'import-preview' });
+    if (!choice) return;
     const entries = payload.entries.map((e) => {
         const out = { ...e, photos: photoList(e).map(dataURLToBlob) };
         delete out.photo;
         return out;
     });
     try {
+        if (choice === 'alt') {
+            // Only what is missing — and where a word is on both, whichever was changed last.
+            const here = new Map(state.entries.map((e) => [e.id, e]));
+            const add = entries.filter((e) => {
+                const mine = here.get(e.id);
+                if (!mine) return true;
+                if (mine.deletedAt) return false;                     // the bin stays the bin
+                return (e.updatedAt || '') > (mine.updatedAt || '');
+            });
+            await TL_DB.putEntries(add);
+            state.entries = await TL_DB.getAllEntries();
+            toast('Added ' + add.length + (add.length === 1 ? ' word' : ' words'));
+            switchTab('words');
+            return;
+        }
         await TL_DB.replaceEntries(entries);      // one step: all of it, or none of it
         await TL_DB.setMeta('seeded', true);
     } catch (err) {
@@ -1370,6 +1429,7 @@ function renderSettings() {
     });
     $('#bin-card').classList.toggle('hidden', bin.length === 0);
     $('#wotd-toggle').checked = wotdWanted();
+    renderBackupWhen();
     const catList = $('#cat-list');
     catList.innerHTML = '';
     categoryNames().forEach((c) => {
@@ -1443,7 +1503,7 @@ function renderGuide() {
         </div>
         <div class="guide-section">
             <h2>Backup</h2>
-            <p>Settings → <strong>Export backup file</strong> writes one file containing every word, photo, favorite and date. Keep it in iCloud Drive. <strong>Import</strong> reads such a file back — it first shows what is inside and asks before replacing anything. The app never overwrites your data on its own.</p>
+            <p>Settings → <strong>Export backup file</strong> writes one file containing every word, photo, favorite and date. Keep it in iCloud Drive. Settings shows when the last backup was made, and the Words page asks quietly for one after a month. <strong>Import</strong> reads such a file back — it first shows what is inside, then <strong>Add missing</strong> adds only the words that are not on this device (a word on both keeps whichever was changed last), or <strong>Replace</strong> swaps everything for the backup. The app never overwrites your data on its own.</p>
         </div>`;
 
     const history = VERSION_LOG.map((rel) =>
@@ -1492,6 +1552,11 @@ function wire() {
     $('#search-paste').onclick = () => pasteInto('search');
     $('#recent-clear').onclick = () => { localStorage.removeItem('tl-recent'); renderRecent(); };
     $('#wotd-toggle').onchange = (ev) => { localStorage.setItem('tl-wotd', ev.target.checked ? 'on' : 'off'); };
+    $('#backup-nudge-go').onclick = exportBackup;
+    $('#backup-nudge-later').onclick = () => {
+        localStorage.setItem('tl-backup-later', String(Date.now() + 7 * 86400000));
+        renderNudge();
+    };
     $('#f-term-paste').onclick = () => pasteInto('term');
     $('#f-term').oninput = updateDupHint;
     $('#dup-open').onclick = async () => {
@@ -1601,6 +1666,7 @@ function registerSW() {
         state.entries = await seedIfNeeded();
         await migratePhotos(state.entries);
         await purgeOldDeleted();
+        state.lastBackupAt = (await TL_DB.getMeta('lastBackupAt')) || null;
     } catch (err) {
         console.error('DB error', err);
         $('#empty-state').classList.remove('hidden');
