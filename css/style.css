@@ -71,6 +71,27 @@ body {
     color: var(--accent);
 }
 .top-bar.sub h1 { font-size: 1.3125rem; color: var(--text); overflow-wrap: anywhere; }
+/* the big page title: it stays at the top and shrinks into a slim bar once the
+   page scrolls — Apple's large-title behaviour */
+.top-bar.large {
+    position: sticky;
+    top: env(safe-area-inset-top, 0px);
+    z-index: 15;
+    background: var(--bg);
+    margin: 0 -16px;
+    padding: 12px 16px 10px;
+    border-bottom: 1px solid transparent;
+}
+body[data-compact="1"] .top-bar.large {
+    padding: 7px 16px 7px;
+    border-bottom-color: var(--line);
+}
+body[data-compact="1"] .top-bar.large h1 { font-size: 1.0625rem; }
+/* the size change itself snaps with the scroll (an animated font size would make
+   every size measurement a moving target); only the bar's padding eases */
+@media (prefers-reduced-motion: no-preference) {
+    .top-bar.large { transition: padding 0.18s ease; }
+}
 /* the edit form's bar stays put while the form scrolls, so Cancel and Save
    are at hand with the keyboard up; it sits just under the clock */
 .edit-bar {

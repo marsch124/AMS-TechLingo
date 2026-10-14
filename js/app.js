@@ -1,9 +1,15 @@
 /* AMS TechLingo — main app logic. */
 
-const APP_VERSION = '1.31';
+const APP_VERSION = '1.32';
 
 /* Thorough per-version history, newest first — shown collapsed in the Guide. */
 const VERSION_LOG = [
+    {
+        v: '1.32', date: '14 Oct 2026',
+        items: [
+            'The big page title now stays at the top and shrinks into a slim bar as soon as you scroll — on the Words, Favorites, Guide and Settings pages — the way Apple’s own apps do it, so the title is always there without taking the room.'
+        ]
+    },
     {
         v: '1.31', date: '13 Oct 2026',
         items: [
@@ -691,6 +697,12 @@ function navDirection(from, to) {
     return 'fade';
 }
 
+/* The big title shrinks once the page has scrolled a little. */
+function updateCompact() {
+    const compact = window.scrollY > 28 ? '1' : '0';
+    if (document.body.dataset.compact !== compact) document.body.dataset.compact = compact;
+}
+
 function showView(name, after) {
     const leaving = document.body.dataset.screen;
     if (leaving === 'list') { scrollMemory.list = window.scrollY; scrollMemory.listTab = state.tab; }
@@ -704,6 +716,7 @@ function showView(name, after) {
         document.body.dataset.screen = name;   // the tests read this, after the swap
         window.scrollTo(0, 0);
         if (after) after();
+        updateCompact();
         if (state.updateWaiting && name !== 'edit') {
             // A new version arrived while he was typing; the form is closed now.
             state.updateWaiting = false;
@@ -1624,6 +1637,7 @@ function wire() {
         $('#search-paste').classList.remove('hidden');
         renderList();
     };
+    window.addEventListener('scroll', updateCompact, { passive: true });
     $('#search-paste').onclick = () => pasteInto('search');
     $('#recent-clear').onclick = () => { localStorage.removeItem('tl-recent'); renderRecent(); };
     $('#wotd-toggle').onchange = (ev) => { localStorage.setItem('tl-wotd', ev.target.checked ? 'on' : 'off'); };
