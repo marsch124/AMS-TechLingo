@@ -455,6 +455,8 @@ body[data-compact="1"] .top-bar.large h1 { font-size: 1.0625rem; }
     align-items: center;
     justify-content: center;
 }
+.detail-tags { display: flex; flex-wrap: wrap; gap: 8px; }
+#tag-suggest { margin-top: 2px; }
 .detail-photo {
     max-width: 100%;
     max-height: 100%;

@@ -15,7 +15,7 @@
     <link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png">
     <link rel="apple-touch-icon" sizes="180x180" href="icons/apple-touch-icon.png">
     <link rel="manifest" href="manifest.json">
-    <link rel="stylesheet" href="css/style.css?v=1.35">
+    <link rel="stylesheet" href="css/style.css?v=1.36">
 </head>
 <body>
     <svg class="icon-sprite" aria-hidden="true" focusable="false">
@@ -106,6 +106,7 @@
                 </div>
             </header>
             <div class="chip-row" id="category-chips"></div>
+            <div class="chip-row small hidden" id="tag-chips" data-testid="tag-chips"></div>
             <div class="chip-row small" id="extra-chips">
                 <button class="chip" id="chip-mine" data-testid="chip-mine">My words</button>
                 <button class="chip" id="chip-photos" data-testid="chip-photos">With photo</button>
@@ -213,6 +214,11 @@
                     <span>Notes (optional)</span>
                     <textarea id="f-notes" data-testid="f-notes" rows="2"></textarea>
                 </label>
+                <div class="field">
+                    <span>Tags (optional)</span>
+                    <input type="text" id="f-tags" data-testid="f-tags" autocomplete="off" autocapitalize="off" placeholder="iPhone, Mail, …" aria-label="Tags, separated by commas">
+                    <div class="chip-row small hidden" id="tag-suggest" data-testid="tag-suggest"></div>
+                </div>
                 <div class="field">
                     <span>Photos / screenshots</span>
                     <div class="photo-edit">
@@ -345,8 +351,8 @@
         <div id="toast" data-testid="toast" class="toast hidden"></div>
     </div>
 
-    <script src="js/library.js?v=1.35"></script>
-    <script src="js/db.js?v=1.35"></script>
-    <script src="js/app.js?v=1.35"></script>
+    <script src="js/library.js?v=1.36"></script>
+    <script src="js/db.js?v=1.36"></script>
+    <script src="js/app.js?v=1.36"></script>
 </body>
 </html>

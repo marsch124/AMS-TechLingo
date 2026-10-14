@@ -1,9 +1,15 @@
 /* AMS TechLingo — main app logic. */
 
-const APP_VERSION = '1.35';
+const APP_VERSION = '1.36';
 
 /* Thorough per-version history, newest first — shown collapsed in the Guide. */
 const VERSION_LOG = [
+    {
+        v: '1.36', date: '14 Oct 2026',
+        items: [
+            'Tags: a word can carry free tags beside its category — iPhone, Mail, Safari, whatever helps you find it — typed with commas in the edit form, where the tags already in use are offered as chips to tap. The tag chips under the categories narrow the list to one tag, a word’s page shows its tags, and search finds them too.'
+        ]
+    },
     {
         v: '1.35', date: '14 Oct 2026',
         items: [
@@ -253,6 +259,7 @@ const state = {
     lang: localStorage.getItem('tl-lang') || 'en',
     search: '',
     category: null,          // null = all
+    tagFilter: null,         // a tag chip chosen under the categories
     onlyMine: false,
     onlyPhotos: false,
     sort: localStorage.getItem('tl-sort') || 'az',
@@ -412,13 +419,15 @@ function visibleEntries() {
     let list = state.entries.filter(alive);
     if (state.tab === 'favorites') list = list.filter((e) => e.favorite);
     if (state.category) list = list.filter((e) => e.category === state.category);
+    if (state.tagFilter) list = list.filter((e) => tagsOf(e).includes(state.tagFilter));
     if (state.onlyMine) list = list.filter((e) => e.source === 'own');
     if (state.onlyPhotos) list = list.filter((e) => e.photos.length > 0);
     const q = fold(state.search);
     if (q) {
         list = list.filter((e) =>
             fold(e.term).includes(q) || fold(e.en).includes(q) || fold(e.de).includes(q) ||
-            fold(e.sv).includes(q) || fold(e.notes).includes(q) || fold(e.category).includes(q));
+            fold(e.sv).includes(q) || fold(e.notes).includes(q) || fold(e.category).includes(q) ||
+            (e.tags || []).some((t) => fold(t).includes(q)));
     }
     list = [...list];
     const bySort = (a, b) => {
@@ -544,7 +553,7 @@ function wordOfTheDay() {
 function wotdWanted() { return localStorage.getItem('tl-wotd') !== 'off'; }
 function renderWotd() {
     const box = $('#wotd');
-    const plain = state.tab === 'words' && !state.search && !state.category && !state.onlyMine && !state.onlyPhotos;
+    const plain = state.tab === 'words' && !state.search && !state.category && !state.tagFilter && !state.onlyMine && !state.onlyPhotos;
     const e = plain && wotdWanted() ? wordOfTheDay() : null;
     box.classList.toggle('hidden', !e);
     box.innerHTML = '';
@@ -585,7 +594,7 @@ function reviewSet() {
 }
 function renderReviewCard() {
     const box = $('#review-card');
-    const plain = state.tab === 'words' && !state.search && !state.category && !state.onlyMine && !state.onlyPhotos;
+    const plain = state.tab === 'words' && !state.search && !state.category && !state.tagFilter && !state.onlyMine && !state.onlyPhotos;
     const n = plain && reviewWanted() ? reviewSet().length : 0;
     box.classList.toggle('hidden', n === 0);
     box.innerHTML = '';
@@ -657,6 +666,70 @@ async function answerReview(knew) {
     renderReview();
 }
 
+/* ---------- tags ---------- */
+
+const tagsOf = (e) => (e.tags || []).map((t) => t.toLowerCase());
+
+/* "iPhone, mail, Mail" → ["iPhone", "mail"]: commas split, spaces and a leading # go, doubles merge. */
+function parseTags(text) {
+    const seen = new Set(), out = [];
+    String(text || '').split(',').map((t) => t.trim().replace(/^#/, '')).filter(Boolean).forEach((t) => {
+        const k = t.toLowerCase();
+        if (!seen.has(k)) { seen.add(k); out.push(t); }
+    });
+    return out;
+}
+
+/* Every tag in use, in its first-seen spelling, alphabetical. */
+function allTags() {
+    const map = new Map();
+    state.entries.filter(alive).forEach((e) => (e.tags || []).forEach((t) => {
+        const k = t.toLowerCase();
+        if (!map.has(k)) map.set(k, t);
+    }));
+    return [...map.values()].sort((a, b) => a.localeCompare(b, undefined, { sensitivity: 'base' }));
+}
+
+function renderTagChips() {
+    const row = $('#tag-chips');
+    const tags = allTags();
+    row.innerHTML = '';
+    row.classList.toggle('hidden', tags.length === 0);
+    tags.forEach((t) => {
+        const b = document.createElement('button');
+        b.className = 'chip' + (state.tagFilter === t.toLowerCase() ? ' active' : '');
+        b.dataset.testid = 'tag-chip';
+        b.dataset.tag = t.toLowerCase();
+        b.textContent = '#' + t;
+        b.onclick = () => { state.tagFilter = state.tagFilter === t.toLowerCase() ? null : t.toLowerCase(); renderList(); };
+        row.appendChild(b);
+    });
+}
+
+/* In the form: the tags in use that this word does not have yet — one tap adds one. */
+function renderTagSuggest() {
+    const row = $('#tag-suggest');
+    const have = new Set(parseTags($('#f-tags').value).map((t) => t.toLowerCase()));
+    const tags = allTags().filter((t) => !have.has(t.toLowerCase()));
+    row.innerHTML = '';
+    row.classList.toggle('hidden', tags.length === 0);
+    tags.forEach((t) => {
+        const b = document.createElement('button');
+        b.type = 'button';
+        b.className = 'chip';
+        b.dataset.testid = 'tag-suggest-chip';
+        b.dataset.tag = t.toLowerCase();
+        b.textContent = '#' + t;
+        b.onclick = () => {
+            const cur = parseTags($('#f-tags').value);
+            cur.push(t);
+            $('#f-tags').value = cur.join(', ');
+            renderTagSuggest();
+        };
+        row.appendChild(b);
+    });
+}
+
 /* The last eight words opened, newest first. Kept on this device only. */
 const RECENT_MAX = 8;
 function recentIds() {
@@ -691,6 +764,7 @@ function renderList() {
     renderRecent();
     renderWotd();
     renderReviewCard();
+    renderTagChips();
     renderNudge();
     $('#chip-mine').classList.toggle('active', state.onlyMine);
     $('#chip-photos').classList.toggle('active', state.onlyPhotos);
@@ -784,7 +858,8 @@ function renderList() {
                     (e.photos.length ? '<span class="badge photo">' + (e.photos.length === 1 ? 'photo' : e.photos.length + ' photos') + '</span>' : '') +
                 '</div>' +
                 '<div class="entry-def">' + esc(defFor(e, state.lang)) + '</div>' +
-                '<div class="entry-cat">' + esc(e.category || '') + '</div>' +
+                '<div class="entry-cat">' + esc(e.category || '') +
+                    ((e.tags || []).length ? ' · ' + e.tags.map((t) => '#' + esc(t)).join(' ') : '') + '</div>' +
             '</div>' +
             '<button class="ghost-btn star-btn' + (e.favorite ? ' faved' : '') + '" aria-label="Favorite">' +
                 '<svg class="icon"><use href="#icon-star"/></svg></button>';
@@ -1093,6 +1168,21 @@ function openDetail(id) {
         '<p class="date-line">Added: ' + fmtDate(e.createdAt) + '</p>' +
         (updatedDiffers ? '<p class="date-line">Updated: ' + fmtDate(e.updatedAt) + '</p>' : '');
     body.appendChild(info);
+    if ((e.tags || []).length) {
+        const row = document.createElement('div');
+        row.className = 'detail-tags';
+        e.tags.forEach((t) => {
+            const b = document.createElement('button');
+            b.type = 'button';
+            b.className = 'chip';
+            b.dataset.testid = 'detail-tag';
+            b.dataset.tag = t.toLowerCase();
+            b.textContent = '#' + t;
+            b.onclick = () => { state.tagFilter = t.toLowerCase(); state.search = ''; $('#search-input').value = ''; switchTab('words'); };
+            row.appendChild(b);
+        });
+        body.appendChild(row);
+    }
 
     showView('detail');
 }
@@ -1207,6 +1297,8 @@ function openEdit(id, { term = '' } = {}) {
     $('#f-de').value = e ? (e.de || '') : '';
     $('#f-sv').value = e ? (e.sv || '') : '';
     $('#f-notes').value = e ? (e.notes || '') : '';
+    $('#f-tags').value = e ? (e.tags || []).join(', ') : '';
+    renderTagSuggest();
     state.editPhotos = e ? [...e.photos] : [];
     state.photosTouched = false;
     renderPhotoThumbs();
@@ -1237,7 +1329,7 @@ function updateDupHint() {
 /* The form's text as one string — compared on Cancel to know whether anything was typed. */
 function formSnapshot(withName = true) {
     return JSON.stringify([withName ? $('#f-term').value : '', $('#f-category').value, $('#f-newcat').value,
-        $('#f-en').value, $('#f-de').value, $('#f-sv').value, $('#f-notes').value]);
+        $('#f-en').value, $('#f-de').value, $('#f-sv').value, $('#f-notes').value, $('#f-tags').value]);
 }
 
 /* The thumbnails in the edit form: one per photo, each with its own ×. */
@@ -1322,7 +1414,7 @@ async function saveEdit(ev) {
         id: uid(), favorite: false, source: 'own', createdAt: now, photos: []
     };
     const before = existing
-        ? JSON.stringify([existing.term, existing.category, existing.en, existing.de, existing.sv, existing.notes])
+        ? JSON.stringify([existing.term, existing.category, existing.en, existing.de, existing.sv, existing.notes, (existing.tags || []).join(',')])
         : null;
     entry.term = term;
     entry.category = category;
@@ -1330,8 +1422,9 @@ async function saveEdit(ev) {
     entry.de = $('#f-de').value.trim();
     entry.sv = $('#f-sv').value.trim();
     entry.notes = $('#f-notes').value.trim();
+    entry.tags = parseTags($('#f-tags').value);
     entry.photos = state.editPhotos;
-    const after = JSON.stringify([entry.term, entry.category, entry.en, entry.de, entry.sv, entry.notes]);
+    const after = JSON.stringify([entry.term, entry.category, entry.en, entry.de, entry.sv, entry.notes, (entry.tags || []).join(',')]);
     if (!existing || before !== after || state.photosTouched) {
         entry.updatedAt = now;
     }
@@ -1790,6 +1883,7 @@ function renderGuide() {
                 <li><strong>My words</strong> shows only entries you created; <strong>With photo</strong> only entries that have a picture.</li>
                 <li><strong>Sort</strong>: A–Z, newest first, or last updated.</li>
                 <li><strong>Swipe</strong> a word to the left for Edit and Delete; a tap anywhere closes the row again.</li>
+                <li><strong>Tags</strong>: give a word free tags beside its category — iPhone, Mail, Safari — typed with commas in the edit form, where the tags already in use are offered as chips. The tag chips under the categories narrow the list to one tag; tap again to clear.</li>
                 <li><strong>Recent</strong>: the last eight words you opened, newest first, one tap from opening again; “clear” empties the row.</li>
             </ul>
         </div>
@@ -1899,6 +1993,7 @@ function wire() {
     };
     $('#f-term-paste').onclick = () => pasteInto('term');
     $('#f-term').oninput = updateDupHint;
+    $('#f-tags').oninput = renderTagSuggest;
     $('#dup-open').onclick = async () => {
         const id = $('#dup-hint').dataset.id;
         if (!id) return;
