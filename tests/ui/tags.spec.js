@@ -18,7 +18,9 @@ async function writeWord(page, term, tags) {
 }
 
 test('tags are typed, offered, shown and used to filter', async ({ page }) => {
+  await page.emulateMedia({ reducedMotion: 'reduce' });
   await openApp(page);
+  const start = Number(await page.getByTestId('count-line').getAttribute('data-count'));
   const stamp = Date.now();
   const tagA = `ph${stamp}`, tagB = `ml${stamp}`;
   const a = await writeWord(page, `Tagged A ${stamp}`, `${tagA}, ${tagB}, ${tagB}`);   // a double merges
@@ -38,7 +40,10 @@ test('tags are typed, offered, shown and used to filter', async ({ page }) => {
   await page.getByTestId('detail-back').click();
 
   // The tag chips narrow the list: B's tag → both words; A's tag → A alone; again → all.
-  const all = Number(await page.getByTestId('count-line').getAttribute('data-count'));
+  // (Wait for the list to settle after the screen change before counting — a count
+  // read a moment too early was the one red run this test has had.)
+  const all = start + 2;
+  await expect(page.getByTestId('count-line')).toHaveAttribute('data-count', String(all));
   await page.locator(`[data-testid="tag-chip"][data-tag="${tagB}"]`).click();
   await expect(page.getByTestId('count-line')).toHaveAttribute('data-count', '2');
   await page.locator(`[data-testid="tag-chip"][data-tag="${tagA}"]`).click();
