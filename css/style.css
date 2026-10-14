@@ -94,7 +94,7 @@ body[data-compact="1"] .top-bar.large h1 { font-size: 1.0625rem; }
 }
 /* the edit form's bar stays put while the form scrolls, so Cancel and Save
    are at hand with the keyboard up; it sits just under the clock */
-.edit-bar {
+.edit-bar, .sticky-bar {
     position: sticky;
     top: env(safe-area-inset-top, 0px);
     z-index: 20;
@@ -103,7 +103,7 @@ body[data-compact="1"] .top-bar.large h1 { font-size: 1.0625rem; }
     padding-left: 16px;
     padding-right: 16px;
 }
-.edit-bar h1 { text-align: center; }
+.edit-bar h1, .sticky-bar h1 { text-align: center; }
 .text-btn { font-size: 1rem; font-weight: 700; color: var(--accent); padding: 8px 6px; }
 
 .ghost-btn {
@@ -351,6 +351,25 @@ body[data-compact="1"] .top-bar.large h1 { font-size: 1.0625rem; }
     cursor: pointer;
 }
 .wotd:active { background: var(--bg-raised); }
+/* the daily review: its card on the Words page, and its own screen */
+.review-card {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    background: var(--bg-card);
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    padding: 12px 14px;
+    margin: 2px 0 12px;
+}
+.review-line { font-size: 0.9375rem; color: var(--text-muted); margin-top: 2px; }
+.review-body { display: flex; flex-direction: column; gap: 12px; }
+.review-term { font-size: 1.75rem; font-weight: 800; margin: 6px 0 12px; overflow-wrap: anywhere; }
+.review-def { font-size: 1.125rem; line-height: 1.5; margin-bottom: 4px; }
+.review-answers { display: flex; gap: 10px; }
+.review-answers .btn { flex: 1; }
+.review-count { font-size: 0.9375rem; color: var(--text-muted); font-weight: 700; flex: none; }
+.review-big { font-size: 1.5rem; font-weight: 800; margin-bottom: 6px; }
 .wotd-label { font-size: 0.75rem; font-weight: 800; letter-spacing: 0.06em; text-transform: uppercase; color: var(--accent); }
 .wotd-term { font-size: 1.1875rem; font-weight: 800; margin-top: 2px; }
 .wotd-def {

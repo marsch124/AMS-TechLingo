@@ -1,9 +1,15 @@
 /* AMS TechLingo — main app logic. */
 
-const APP_VERSION = '1.33';
+const APP_VERSION = '1.34';
 
 /* Thorough per-version history, newest first — shown collapsed in the Guide. */
 const VERSION_LOG = [
+    {
+        v: '1.34', date: '14 Oct 2026',
+        items: [
+            'Daily review: a card on the Words page offers five words a day. Each shows the word first; tap to see the definition, then say <strong>Knew it</strong> or <strong>Show again soon</strong>. Words you asked to see again come first next time, words you knew rest for a week, your own words and favorites come before the starter library. No streaks, no pressure — Settings can hide the card.'
+        ]
+    },
     {
         v: '1.33', date: '14 Oct 2026',
         items: [
@@ -544,6 +550,107 @@ function renderWotd() {
     box.onclick = () => openDetail(e.id);
 }
 
+/* ---------- daily review ---------- */
+
+function reviewWanted() { return localStorage.getItem('tl-review') !== 'off'; }
+function localDayKey() {
+    const d = new Date();
+    return d.getFullYear() + '-' + (d.getMonth() + 1) + '-' + d.getDate();
+}
+function hashStr(s) {
+    let h = 2166136261;
+    for (const c of s) { h ^= c.charCodeAt(0); h = Math.imul(h, 16777619); }
+    return h >>> 0;
+}
+/* Today's five: the ones to see again first, then own words, favorites, the rest —
+   shuffled afresh each day — with words known in the last week resting at the back. */
+function reviewSet() {
+    const live = state.entries.filter(alive).filter((e) => defFor(e, state.lang));
+    const day = localDayKey();
+    const weekAgo = Date.now() - 7 * 86400000;
+    const rank = (e) => {
+        if (e.review && e.review.again) return 0;
+        const rested = e.review && e.review.knownOn && new Date(e.review.knownOn).getTime() > weekAgo ? 10 : 0;
+        return rested + (e.source === 'own' ? 1 : e.favorite ? 2 : 3);
+    };
+    return [...live]
+        .sort((a, b) => rank(a) - rank(b) || hashStr(a.id + day) - hashStr(b.id + day))
+        .slice(0, 5);
+}
+function renderReviewCard() {
+    const box = $('#review-card');
+    const plain = state.tab === 'words' && !state.search && !state.category && !state.onlyMine && !state.onlyPhotos;
+    const n = plain && reviewWanted() ? reviewSet().length : 0;
+    box.classList.toggle('hidden', n === 0);
+    box.innerHTML = '';
+    if (n === 0) return;
+    const done = localStorage.getItem('tl-review-done') === localDayKey();
+    const againN = state.entries.filter(alive).filter((e) => e.review && e.review.again).length;
+    box.dataset.done = done ? '1' : '0';
+    box.innerHTML = '<div class="grow"><div class="wotd-label">Daily review</div>' +
+        '<div class="review-line">' + (done ? 'Done for today' : n + ' words · about a minute' + (againN ? ' · ' + againN + ' to see again' : '')) + '</div></div>' +
+        '<button type="button" class="btn ' + (done ? 'secondary' : 'primary') + ' small" id="review-start" data-testid="review-start">' +
+        (done ? 'Once more' : 'Start') + '</button>';
+    $('#review-start').onclick = startReview;
+}
+function startReview() {
+    const list = reviewSet();
+    if (!list.length) { toast('Add a word or two first'); return; }
+    state.review = { list, index: 0, revealed: false, known: 0, again: 0 };
+    showView('review', renderReview);
+}
+function renderReview() {
+    const r = state.review, body = $('#review-body');
+    body.innerHTML = '';
+    const count = $('#review-count');
+    if (r.index >= r.list.length) {
+        $('#review-title').textContent = 'Done for today';
+        count.textContent = '';
+        delete count.dataset.index;
+        body.innerHTML = '<div class="card" data-testid="review-summary" data-known="' + r.known + '" data-again="' + r.again + '">' +
+            '<p class="review-big">' + r.known + ' of ' + r.list.length + ' known</p>' +
+            '<p class="muted">' + (r.again ? r.again + ' to see again soon.' : 'Nothing to see again — well done.') + '</p>' +
+            '<button type="button" class="btn primary wide" id="review-done" data-testid="review-done">Done</button></div>';
+        $('#review-done').onclick = () => switchTab('words');
+        localStorage.setItem('tl-review-done', localDayKey());
+        return;
+    }
+    const e = r.list[r.index];
+    $('#review-title').textContent = 'Review';
+    count.textContent = (r.index + 1) + ' of ' + r.list.length;
+    count.dataset.index = String(r.index + 1);
+    count.dataset.total = String(r.list.length);
+    const card = document.createElement('div');
+    card.className = 'card';
+    card.dataset.testid = 'review-question';
+    card.dataset.id = e.id;
+    card.innerHTML = '<div class="wotd-label">' + esc(e.category || '') + '</div>' +
+        '<div class="review-term" data-testid="review-term">' + esc(e.term) + '</div>' +
+        '<div class="review-def' + (r.revealed ? '' : ' hidden') + '" data-testid="review-def">' + esc(defFor(e, state.lang)) + '</div>' +
+        (r.revealed ? '' : '<button type="button" class="btn primary wide" id="review-reveal" data-testid="review-reveal">Show definition</button>');
+    body.appendChild(card);
+    if (!r.revealed) {
+        $('#review-reveal').onclick = () => { r.revealed = true; renderReview(); };
+        return;
+    }
+    const row = document.createElement('div');
+    row.className = 'review-answers';
+    row.innerHTML = '<button type="button" class="btn secondary" id="review-again" data-testid="review-again">Show again soon</button>' +
+        '<button type="button" class="btn primary" id="review-knew" data-testid="review-knew">Knew it</button>';
+    body.appendChild(row);
+    $('#review-knew').onclick = () => answerReview(true);
+    $('#review-again').onclick = () => answerReview(false);
+}
+async function answerReview(knew) {
+    const r = state.review, e = r.list[r.index];
+    e.review = { again: !knew, knownOn: knew ? new Date().toISOString() : ((e.review && e.review.knownOn) || null) };
+    await TL_DB.putEntry(e);           // a review is not an edit: updatedAt is left alone
+    if (knew) r.known++; else r.again++;
+    r.index++;
+    r.revealed = false;
+    renderReview();
+}
+
 /* The last eight words opened, newest first. Kept on this device only. */
 const RECENT_MAX = 8;
 function recentIds() {
@@ -577,6 +684,7 @@ function renderList() {
     renderCategoryChips();
     renderRecent();
     renderWotd();
+    renderReviewCard();
     renderNudge();
     $('#chip-mine').classList.toggle('active', state.onlyMine);
     $('#chip-photos').classList.toggle('active', state.onlyPhotos);
@@ -765,9 +873,9 @@ const scrollMemory = { list: 0, listTab: null };
 /* Which way a screen change moves: a word opens to the right, Back comes from the left. */
 function navDirection(from, to) {
     if (!from || from === to) return 'none';
-    const forward = { list: ['detail', 'edit'], detail: ['edit'] };
+    const forward = { list: ['detail', 'edit', 'review'], detail: ['edit'] };
     if ((forward[from] || []).includes(to)) return 'forward';
-    const back = { detail: ['list'], edit: ['detail', 'list'] };
+    const back = { detail: ['list'], edit: ['detail', 'list'], review: ['list'] };
     if ((back[from] || []).includes(to)) return 'back';
     return 'fade';
 }
@@ -784,9 +892,9 @@ function showView(name, after) {
     if (leaving === 'detail' && name !== 'detail') { freePictures('detail'); stopReading(); closeLightbox(); }
     if (leaving === 'edit') freePictures('thumbs');
     const swap = () => {
-        ['list', 'detail', 'edit', 'guide', 'settings'].forEach((v) =>
+        ['list', 'detail', 'edit', 'review', 'guide', 'settings'].forEach((v) =>
             $('#view-' + v).classList.toggle('hidden', v !== name));
-        $('#tab-bar').classList.toggle('hidden', name === 'edit');
+        $('#tab-bar').classList.toggle('hidden', name === 'edit' || name === 'review');
         $('#search-dock').classList.toggle('hidden', name !== 'list');
         document.body.dataset.screen = name;   // the tests read this, after the swap
         window.scrollTo(0, 0);
@@ -1610,6 +1718,7 @@ function renderSettings() {
     });
     $('#bin-card').classList.toggle('hidden', bin.length === 0);
     $('#wotd-toggle').checked = wotdWanted();
+    $('#review-toggle').checked = reviewWanted();
     renderBackupWhen();
     const catList = $('#cat-list');
     catList.innerHTML = '';
@@ -1680,6 +1789,10 @@ function renderGuide() {
             <p>Open a word and tap <strong>Share</strong>. The iPhone share sheet opens with a short greeting (“Hello, this is Martin who wants to share Tech Lingo with you.”), the word, its definition in the language the switch is on, your notes and the photos — choose Messages to send it as a text, or Mail, WhatsApp, AirDrop… A word you have just added opens by itself after saving, so it can be shared straight away. On a Mac without a share sheet, Share copies the text instead, ready to paste.</p>
         </div>
         <div class="guide-section">
+            <h2>Daily review</h2>
+            <p>A card on the Words page offers five words a day. Each shows the word first; tap to see the definition, then say <strong>Knew it</strong> or <strong>Show again soon</strong>. Words you asked to see again come first next time, words you knew rest for a week, and your own words and favorites come before the starter library. No streaks, no pressure — Settings can hide the card.</p>
+        </div>
+        <div class="guide-section">
             <h2>Favorites</h2>
             <p>Tap the star on any word. The Favorites tab collects them all.</p>
         </div>
@@ -1735,6 +1848,8 @@ function wire() {
     $('#search-paste').onclick = () => pasteInto('search');
     $('#recent-clear').onclick = () => { localStorage.removeItem('tl-recent'); renderRecent(); };
     $('#wotd-toggle').onchange = (ev) => { localStorage.setItem('tl-wotd', ev.target.checked ? 'on' : 'off'); };
+    $('#review-toggle').onchange = (ev) => { localStorage.setItem('tl-review', ev.target.checked ? 'on' : 'off'); };
+    $('#review-close').onclick = () => switchTab('words');
     $('#backup-nudge-go').onclick = exportBackup;
 
     // The search bar rises with the keyboard (the visible part of the screen shrinks; the bar follows its bottom edge).
