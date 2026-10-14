@@ -1,9 +1,15 @@
 /* AMS TechLingo — main app logic. */
 
-const APP_VERSION = '1.32';
+const APP_VERSION = '1.33';
 
 /* Thorough per-version history, newest first — shown collapsed in the Guide. */
 const VERSION_LOG = [
+    {
+        v: '1.33', date: '14 Oct 2026',
+        items: [
+            'Swipe a word to the left in the list and <strong>Edit</strong> and <strong>Delete</strong> appear behind it, the way rows work in Mail and Notes. Delete goes to Recently deleted with an Undo, as on the word’s page; a tap anywhere closes the row again.'
+        ]
+    },
     {
         v: '1.32', date: '14 Oct 2026',
         items: [
@@ -241,6 +247,7 @@ const state = {
     detailId: null,
     editId: null,            // null = adding new
     updateWaiting: false,    // a new version arrived while the edit form was open
+    editFrom: '',            // the screen an edit began on — Cancel returns there
     editSnapshot: '',        // the form as it was opened, to know whether Cancel throws anything away
     editSnapshotRest: '',    // the same without the name — "Open it" under a typed name asks only if more was typed
     editPhotos: [],          // the photos as they stand in the edit form
@@ -644,6 +651,14 @@ function renderList() {
     frag.appendChild(counter);
 
     list.forEach((e) => {
+        const row = document.createElement('div');
+        row.className = 'swipe-row';
+        row.dataset.testid = 'swipe-row';
+        row.dataset.id = e.id;
+        row.dataset.open = '0';
+        row.innerHTML = '<div class="swipe-actions">' +
+            '<button type="button" class="swipe-edit" data-testid="swipe-edit"><svg class="icon"><use href="#icon-edit"/></svg>Edit</button>' +
+            '<button type="button" class="swipe-delete" data-testid="swipe-delete"><svg class="icon"><use href="#icon-trash"/></svg>Delete</button></div>';
         const card = document.createElement('div');
         card.className = 'entry-card';
         card.dataset.testid = 'entry-card';
@@ -663,10 +678,70 @@ function renderList() {
             ev.stopPropagation();
             toggleFavorite(e.id);
         };
-        card.onclick = () => openDetail(e.id);
-        frag.appendChild(card);
+        row.appendChild(card);
+        attachSwipe(row, card, e);
+        frag.appendChild(row);
     });
     wrap.appendChild(frag);
+}
+
+/* ---------- swipe a row ---------- */
+
+const SWIPE_W = 176;          // the width of the two buttons behind a row
+let openRow = null;           // at most one row is open at a time
+
+function closeOpenRow() {
+    if (!openRow) return;
+    openRow.dataset.open = '0';
+    openRow.querySelector('.entry-card').style.transform = '';
+    openRow = null;
+}
+
+function attachSwipe(row, card, e) {
+    let pointerId = null, startX = 0, startY = 0, dx = 0, decided = false, dragging = false;
+    row.querySelector('.swipe-edit').onclick = (ev) => { ev.stopPropagation(); closeOpenRow(); openEdit(e.id); };
+    row.querySelector('.swipe-delete').onclick = (ev) => { ev.stopPropagation(); closeOpenRow(); deleteWord(e.id); };
+    card.addEventListener('pointerdown', (ev) => {
+        if (ev.pointerType === 'mouse' && ev.button !== 0) return;
+        pointerId = ev.pointerId; startX = ev.clientX; startY = ev.clientY;
+        dx = 0; decided = false; dragging = false;
+    });
+    card.addEventListener('pointermove', (ev) => {
+        if (pointerId === null || ev.pointerId !== pointerId) return;
+        const mx = ev.clientX - startX, my = ev.clientY - startY;
+        if (!decided) {
+            if (Math.abs(mx) < 8 && Math.abs(my) < 8) return;
+            decided = true;
+            dragging = Math.abs(mx) > Math.abs(my);      // sideways: a swipe; otherwise the page scrolls
+            if (!dragging) return;
+            row.classList.add('dragging');
+            try { card.setPointerCapture(pointerId); } catch { /* a stand-in pointer: fine */ }
+            if (openRow && openRow !== row) closeOpenRow();
+        }
+        if (!dragging) return;
+        const base = row.dataset.open === '1' ? -SWIPE_W : 0;
+        dx = Math.max(-SWIPE_W, Math.min(0, base + mx));
+        card.style.transform = 'translateX(' + dx + 'px)';
+    });
+    const finish = () => {
+        if (pointerId === null) return;
+        pointerId = null;
+        row.classList.remove('dragging');
+        if (!dragging) return;
+        const open = dx < -SWIPE_W * 0.4;
+        card.style.transform = '';
+        row.dataset.open = open ? '1' : '0';
+        if (open) openRow = row; else if (openRow === row) openRow = null;
+        row.dataset.swiped = '1';                    // the release of a swipe is not a tap
+        setTimeout(() => { delete row.dataset.swiped; }, 0);
+    };
+    card.addEventListener('pointerup', finish);
+    card.addEventListener('pointercancel', finish);
+    card.onclick = () => {
+        if (row.dataset.swiped) return;
+        if (row.dataset.open === '1' || openRow) { closeOpenRow(); return; }
+        openDetail(e.id);
+    };
 }
 
 async function toggleFavorite(id) {
@@ -1007,6 +1082,7 @@ function categoryOptions(selected) {
 
 function openEdit(id, { term = '' } = {}) {
     state.editId = id;
+    state.editFrom = document.body.dataset.screen;   // Cancel goes back to where the edit began
     const e = id ? state.entries.find((x) => x.id === id) : null;
     $('#edit-title').textContent = e ? 'Edit word' : 'Add word';
     $('#f-term').value = e ? e.term : term;   // a new word may arrive pre-filled from an empty search
@@ -1160,9 +1236,26 @@ async function saveEdit(ev) {
 async function deleteCurrent() {
     const e = state.entries.find((x) => x.id === state.detailId);
     if (!e) return;
+    await markDeleted(e);
+    switchTab(state.tab === 'favorites' ? 'favorites' : 'words');
+    undoToast(e);
+}
+
+/* From a swiped row: the row leaves the list, the same Undo appears. */
+async function deleteWord(id) {
+    const e = state.entries.find((x) => x.id === id);
+    if (!e) return;
+    await markDeleted(e);
+    renderList();
+    undoToast(e);
+}
+
+async function markDeleted(e) {
     e.deletedAt = new Date().toISOString();      // kept, marked — see Recently deleted in Settings
     await TL_DB.putEntry(e);
-    switchTab(state.tab === 'favorites' ? 'favorites' : 'words');
+}
+
+function undoToast(e) {
     toast('Deleted “' + e.term + '”', { action: 'Undo', onAction: () => restoreDeleted(e.id), ms: 6000 });
 }
 
@@ -1558,6 +1651,7 @@ function renderGuide() {
                 <li><strong>Category chips</strong> narrow the list to one area; tap again to clear. Categories can be renamed in Settings; renaming one onto an existing name merges them.</li>
                 <li><strong>My words</strong> shows only entries you created; <strong>With photo</strong> only entries that have a picture.</li>
                 <li><strong>Sort</strong>: A–Z, newest first, or last updated.</li>
+                <li><strong>Swipe</strong> a word to the left for Edit and Delete; a tap anywhere closes the row again.</li>
                 <li><strong>Recent</strong>: the last eight words you opened, newest first, one tap from opening again; “clear” empties the row.</li>
             </ul>
         </div>
@@ -1694,8 +1788,8 @@ function wire() {
                 'The changes to this word will be lost.', { danger: true, okLabel: 'Throw away' });
             if (!ok) return;
         }
-        if (state.editId) openDetail(state.editId);
-        else switchTab(state.tab);
+        if (state.editId && state.editFrom === 'detail') openDetail(state.editId);
+        else switchTab(state.tab);                    // a new word, or an edit begun from a swiped row
     };
     $('#edit-cancel').onclick = cancelEdit;
     $('#edit-cancel2').onclick = cancelEdit;
