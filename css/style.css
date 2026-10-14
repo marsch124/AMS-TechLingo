@@ -575,6 +575,10 @@ body[data-compact="1"] .top-bar.large h1 { font-size: 1.0625rem; }
 
 /* ---------- guide / settings ---------- */
 .guide-body, .settings-body { display: flex; flex-direction: column; gap: 12px; }
+/* quiet statistics at the top of the Guide */
+.stats { margin-bottom: 12px; }
+.stats-line { font-size: 1rem; font-weight: 700; }
+.stats-sub { font-size: 0.875rem; color: var(--text-muted); margin-top: 4px; }
 .guide-body p, .guide-body li { color: var(--text); font-size: 0.9375rem; }
 .guide-body ul { padding-left: 20px; display: flex; flex-direction: column; gap: 6px; }
 

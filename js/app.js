@@ -1,9 +1,15 @@
 /* AMS TechLingo — main app logic. */
 
-const APP_VERSION = '1.34';
+const APP_VERSION = '1.35';
 
 /* Thorough per-version history, newest first — shown collapsed in the Guide. */
 const VERSION_LOG = [
+    {
+        v: '1.35', date: '14 Oct 2026',
+        items: [
+            'Quiet statistics at the top of the Guide: how many words, how many your own, with photos and favorites; when the last word was added and which; how many are waiting in Recently deleted. Numbers only — no streaks, no targets.'
+        ]
+    },
     {
         v: '1.34', date: '14 Oct 2026',
         items: [
@@ -975,6 +981,7 @@ function switchTab(tab) {
             }
         });
     } else if (tab === 'guide') {
+        renderGuideStats();
         showView('guide');
     } else {
         renderSettings();
@@ -1737,6 +1744,28 @@ function renderSettings() {
     $('#stats-line').textContent =
         total + ' words · ' + own + ' of your own · ' + favs + ' favorites · ' + photos + ' photos';
     $('#version-label').textContent = APP_VERSION;
+}
+
+/* Numbers only, at the top of the Guide — nothing to chase. */
+function renderGuideStats() {
+    const box = $('#guide-stats');
+    const live = state.entries.filter(alive);
+    const own = live.filter((e) => e.source === 'own');
+    const photos = live.filter((e) => e.photos.length).length;
+    const favs = live.filter((e) => e.favorite).length;
+    const bin = state.entries.filter((e) => e.deletedAt).length;
+    const newest = [...own].sort((a, b) => (b.createdAt || '').localeCompare(a.createdAt || ''))[0];
+    box.classList.toggle('hidden', live.length === 0);
+    box.dataset.words = String(live.length);
+    box.dataset.own = String(own.length);
+    box.dataset.photos = String(photos);
+    box.dataset.favs = String(favs);
+    box.dataset.bin = String(bin);
+    box.innerHTML = '<h2>Your dictionary</h2>' +
+        '<p class="stats-line">' + live.length + ' words · ' + own.length + ' your own · ' + photos + ' with photos · ' + favs + ' favorites</p>' +
+        '<p class="stats-sub">' +
+        (newest ? 'Last word added: ' + esc(newest.term) + ', ' + fmtDate(newest.createdAt) : 'No words of your own yet') +
+        (bin ? ' · ' + bin + ' in Recently deleted' : '') + '</p>';
 }
 
 function renderGuide() {
